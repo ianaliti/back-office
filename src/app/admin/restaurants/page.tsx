@@ -67,7 +67,7 @@ export default function AdminRestaurantsPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#685ED7]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#4E6939]" />
       </div>
     )
   }
@@ -101,7 +101,7 @@ export default function AdminRestaurantsPage() {
               <CardHeader>
                 <CardTitle className="text-base">{r.name}</CardTitle>
                 {r.cuisine && (
-                  <span className="inline-block rounded-full bg-[#685ED7]/10 px-2.5 py-0.5 text-xs text-[#685ED7]">
+                  <span className="inline-block rounded-full bg-[#4E6939]/10 px-2.5 py-0.5 text-xs text-[#4E6939]">
                     {r.cuisine}
                   </span>
                 )}
@@ -126,7 +126,7 @@ export default function AdminRestaurantsPage() {
                       href={r.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#685ED7] hover:underline truncate"
+                      className="text-[#4E6939] hover:underline truncate"
                     >
                       {r.website}
                     </a>

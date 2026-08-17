@@ -39,7 +39,7 @@ export default function RestaurantDashboardPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#685ED7]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#4E6939]" />
       </div>
     )
   }
@@ -50,7 +50,7 @@ export default function RestaurantDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome */}
-      <div className="rounded-xl bg-gradient-to-r from-[#685ED7] to-[#8B7EE8] p-6 text-white">
+      <div className="rounded-xl bg-gradient-to-r from-[#4E6939] to-[#8B7EE8] p-6 text-white">
         <h2 className="text-2xl font-bold">
           Welcome back, {user?.displayName ?? 'Owner'}
         </h2>
@@ -69,8 +69,8 @@ export default function RestaurantDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#685ED7]/10">
-              <UtensilsCrossed className="h-6 w-6 text-[#685ED7]" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#4E6939]/10">
+              <UtensilsCrossed className="h-6 w-6 text-[#4E6939]" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{dishes.length}</p>
@@ -118,8 +118,8 @@ export default function RestaurantDashboardPage() {
             icon: BookOpen,
             title: 'Manage Menu',
             desc: 'Add, edit or remove dishes',
-            color: 'text-[#685ED7]',
-            bg: 'bg-[#685ED7]/10',
+            color: 'text-[#4E6939]',
+            bg: 'bg-[#4E6939]/10',
           },
           {
             href: '/restaurant/media',
@@ -139,7 +139,7 @@ export default function RestaurantDashboardPage() {
               <p className="mt-1 text-sm text-gray-500">{item.desc}</p>
               <Link
                 href={item.href}
-                className="mt-4 flex items-center gap-1 text-sm font-medium text-[#685ED7] hover:gap-2 transition-all"
+                className="mt-4 flex items-center gap-1 text-sm font-medium text-[#4E6939] hover:gap-2 transition-all"
               >
                 Go to {item.title} <ArrowRight className="h-4 w-4" />
               </Link>

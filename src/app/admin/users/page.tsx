@@ -78,7 +78,7 @@ export default function AdminUsersPage() {
         <CardContent>
           {loading ? (
             <div className="flex h-32 items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-[#685ED7]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#4E6939]" />
             </div>
           ) : (
             <>
@@ -112,7 +112,7 @@ export default function AdminUsersPage() {
                               value={user.role}
                               onChange={(e) => handleRoleChange(user, e.target.value as UserRole)}
                               disabled={updatingId === user.id}
-                              className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#685ED7]/40 disabled:opacity-50"
+                              className="h-8 rounded-lg border border-gray-200 bg-white px-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#4E6939]/40 disabled:opacity-50"
                             >
                               {ROLES.map((role) => (
                                 <option key={role} value={role}>
@@ -121,7 +121,7 @@ export default function AdminUsersPage() {
                               ))}
                             </select>
                             {updatingId === user.id && (
-                              <Loader2 className="h-4 w-4 animate-spin text-[#685ED7]" />
+                              <Loader2 className="h-4 w-4 animate-spin text-[#4E6939]" />
                             )}
                           </div>
                         </td>

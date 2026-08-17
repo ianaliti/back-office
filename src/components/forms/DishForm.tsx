@@ -90,7 +90,7 @@ export function DishForm({
           placeholder="Describe the dish..."
           rows={2}
           disabled={loading}
-          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#685ED7]/40 focus:border-[#685ED7] disabled:opacity-50"
+          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4E6939]/40 focus:border-[#4E6939] disabled:opacity-50"
         />
       </div>
 
@@ -113,7 +113,7 @@ export function DishForm({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             disabled={loading}
-            className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#685ED7]/40 focus:border-[#685ED7] disabled:opacity-50"
+            className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4E6939]/40 focus:border-[#4E6939] disabled:opacity-50"
           >
             {CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>
@@ -140,8 +140,8 @@ export function DishForm({
           aria-checked={available}
           onClick={() => setAvailable(!available)}
           disabled={loading}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#685ED7]/40 ${
-            available ? 'bg-[#685ED7]' : 'bg-gray-200'
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#4E6939]/40 ${
+            available ? 'bg-[#4E6939]' : 'bg-gray-200'
           }`}
         >
           <span

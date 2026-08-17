@@ -5,6 +5,7 @@ import {
   setCookies,
   clearAuth,
   getUser,
+  setUserFromJwt,
 } from './auth'
 import type {
   AuthResponse,
@@ -45,7 +46,7 @@ async function refreshAccessToken(): Promise<string> {
   if (!response.ok) {
     clearAuth()
     window.location.href = '/login'
-    throw new Error('Token refresh failed')
+    throw new Error('Session expired. Please log in again.')
   }
 
   const data: RefreshResponse = await response.json()
@@ -53,9 +54,7 @@ async function refreshAccessToken(): Promise<string> {
   setTokens({ accessToken, refreshToken: newRefreshToken })
 
   const user = getUser()
-  if (user) {
-    setCookies(accessToken, user.role)
-  }
+  if (user) setCookies(accessToken, user.role)
 
   return accessToken
 }
@@ -70,10 +69,7 @@ async function fetchWithAuth(
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   }
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
+  if (token) headers['Authorization'] = `Bearer ${token}`
 
   const response = await fetch(url, { ...options, headers })
 
@@ -105,28 +101,36 @@ async function fetchWithAuth(
   return response
 }
 
+// Backend error shape: { error: { code: string, message: string } }
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let message = `HTTP error ${response.status}`
     try {
-      const errorData = await response.json()
-      message = errorData.message || message
+      const body = await response.json()
+      message = body?.error?.message || body?.message || message
     } catch {
-      // ignore parse errors
+      // ignore
     }
     throw new Error(message)
   }
   return response.json() as Promise<T>
 }
 
-// Auth
-export async function login(email: string, password: string): Promise<AuthResponse> {
+// Auth — returns tokens; user is decoded from the JWT payload
+export async function login(email: string, password: string): Promise<{ accessToken: string; refreshToken: string; user: User }> {
   const response = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   })
-  return handleResponse<AuthResponse>(response)
+
+  const data = await handleResponse<AuthResponse>(response)
+  const { accessToken, refreshToken } = data.data
+
+  const user = setUserFromJwt(accessToken)
+  if (!user) throw new Error('Invalid token received from server')
+
+  return { accessToken, refreshToken, user }
 }
 
 export async function logout(): Promise<void> {
@@ -163,10 +167,7 @@ export async function createRestaurant(formData: RestaurantFormData): Promise<Re
   return data.data
 }
 
-export async function updateRestaurant(
-  id: string,
-  formData: Partial<RestaurantFormData>
-): Promise<Restaurant> {
+export async function updateRestaurant(id: string, formData: Partial<RestaurantFormData>): Promise<Restaurant> {
   const response = await fetchWithAuth(`${BASE_URL}/restaurants/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(formData),
@@ -176,12 +177,11 @@ export async function updateRestaurant(
 }
 
 export async function deleteRestaurant(id: string): Promise<void> {
-  const response = await fetchWithAuth(`${BASE_URL}/restaurants/${id}`, {
-    method: 'DELETE',
-  })
+  const response = await fetchWithAuth(`${BASE_URL}/restaurants/${id}`, { method: 'DELETE' })
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}))
-    throw new Error((data as { message?: string }).message || 'Failed to delete restaurant')
+    const body = await response.json().catch(() => ({}))
+    const msg = (body as { error?: { message?: string } })?.error?.message || 'Failed to delete restaurant'
+    throw new Error(msg)
   }
 }
 
@@ -201,32 +201,21 @@ export async function createDish(restaurantId: string, formData: DishFormData): 
   return data.data
 }
 
-export async function updateDish(
-  restaurantId: string,
-  dishId: string,
-  formData: Partial<DishFormData>
-): Promise<Dish> {
-  const response = await fetchWithAuth(
-    `${BASE_URL}/restaurants/${restaurantId}/dishes/${dishId}`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify(formData),
-    }
-  )
+export async function updateDish(restaurantId: string, dishId: string, formData: Partial<DishFormData>): Promise<Dish> {
+  const response = await fetchWithAuth(`${BASE_URL}/restaurants/${restaurantId}/dishes/${dishId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(formData),
+  })
   const data = await handleResponse<DishResponse>(response)
   return data.data
 }
 
 export async function deleteDish(restaurantId: string, dishId: string): Promise<void> {
-  const response = await fetchWithAuth(
-    `${BASE_URL}/restaurants/${restaurantId}/dishes/${dishId}`,
-    {
-      method: 'DELETE',
-    }
-  )
+  const response = await fetchWithAuth(`${BASE_URL}/restaurants/${restaurantId}/dishes/${dishId}`, { method: 'DELETE' })
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}))
-    throw new Error((data as { message?: string }).message || 'Failed to delete dish')
+    const body = await response.json().catch(() => ({}))
+    const msg = (body as { error?: { message?: string } })?.error?.message || 'Failed to delete dish'
+    throw new Error(msg)
   }
 }
 

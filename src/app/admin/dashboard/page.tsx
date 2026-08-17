@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#685ED7]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#4E6939]" />
       </div>
     )
   }
@@ -41,7 +41,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="rounded-xl bg-gradient-to-r from-[#685ED7] to-[#8B7EE8] p-6 text-white">
+      <div className="rounded-xl bg-gradient-to-r from-[#4E6939] to-[#8B7EE8] p-6 text-white">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
         <p className="mt-1 text-white/80">Overview of the Yummy platform</p>
       </div>
@@ -63,8 +63,8 @@ export default function AdminDashboardPage() {
           icon={UtensilsCrossed}
           label="Restaurants"
           value={stats?.restaurants ?? 0}
-          color="text-[#685ED7]"
-          bg="bg-[#685ED7]/10"
+          color="text-[#4E6939]"
+          bg="bg-[#4E6939]/10"
         />
         <StatCard
           icon={CalendarDays}

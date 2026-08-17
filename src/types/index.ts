@@ -4,7 +4,7 @@ export interface User {
   id: string
   email: string
   role: UserRole
-  displayName: string
+  displayName?: string
 }
 
 export interface AuthTokens {
@@ -12,19 +12,30 @@ export interface AuthTokens {
   refreshToken: string
 }
 
+// Backend returns { status: "ok", data: { accessToken, refreshToken } } — no user object
 export interface AuthResponse {
+  status: string
   data: {
     accessToken: string
     refreshToken: string
-    user: User
   }
 }
 
 export interface RefreshResponse {
+  status: string
   data: {
     accessToken: string
     refreshToken: string
   }
+}
+
+export interface JwtPayload {
+  sub: string
+  email: string
+  role: UserRole
+  jti: string
+  iat: number
+  exp: number
 }
 
 export interface OpeningHours {
@@ -41,7 +52,7 @@ export interface Restaurant {
   id: string
   name: string
   address: string
-  phone: string
+  phone?: string
   website?: string
   description?: string
   cuisine?: string
@@ -56,7 +67,7 @@ export interface Dish {
   name: string
   description?: string
   price: number
-  category: string
+  category?: string
   available: boolean
   imageUrl?: string
   restaurantId: string
@@ -65,6 +76,7 @@ export interface Dish {
 }
 
 export interface AdminStats {
+  status: string
   data: {
     users: number
     restaurants: number
@@ -73,6 +85,7 @@ export interface AdminStats {
 }
 
 export interface PaginatedUsers {
+  status: string
   data: {
     users: User[]
     total: number
@@ -82,24 +95,23 @@ export interface PaginatedUsers {
   }
 }
 
-export interface ApiError {
-  message: string
-  statusCode?: number
-}
-
 export interface RestaurantsListResponse {
+  status: string
   data: Restaurant[]
 }
 
 export interface RestaurantResponse {
+  status: string
   data: Restaurant
 }
 
 export interface DishesListResponse {
+  status: string
   data: Dish[]
 }
 
 export interface DishResponse {
+  status: string
   data: Dish
 }
 

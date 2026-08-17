@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { login } from '@/lib/api'
-import { setTokens, setUser, setCookies } from '@/lib/auth'
+import { setTokens, setCookies } from '@/lib/auth'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { UtensilsCrossed, AlertCircle } from 'lucide-react'
+import { Leaf, AlertCircle } from 'lucide-react'
 
 export function LoginForm() {
   const router = useRouter()
@@ -19,22 +19,14 @@ export function LoginForm() {
     e.preventDefault()
     setError('')
 
-    if (!email.trim()) {
-      setError('Email is required')
-      return
-    }
-    if (!password) {
-      setError('Password is required')
-      return
-    }
+    if (!email.trim()) { setError('Email is required'); return }
+    if (!password) { setError('Password is required'); return }
 
     setLoading(true)
     try {
-      const response = await login(email.trim(), password)
-      const { accessToken, refreshToken, user } = response.data
+      const { accessToken, refreshToken, user } = await login(email.trim(), password)
 
       setTokens({ accessToken, refreshToken })
-      setUser(user)
       setCookies(accessToken, user.role)
 
       if (user.role === 'ADMIN') {
@@ -45,27 +37,26 @@ export function LoginForm() {
         setError('Access denied. Only restaurant owners and admins can log in.')
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Invalid credentials. Please try again.'
-      setError(message)
+      setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <div className="flex min-h-screen items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #f0f4ec 0%, #e8f0e4 100%)' }}>
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#685ED7] shadow-lg shadow-[#685ED7]/30">
-            <UtensilsCrossed className="h-7 w-7 text-white" />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg" style={{ background: 'linear-gradient(135deg, #4E6939 0%, #6B8C4A 100%)' }}>
+            <Leaf className="h-8 w-8 text-white" />
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-gray-900">Yummy Back Office</h1>
-          <p className="mt-1 text-sm text-gray-500">Sign in to manage your restaurant</p>
+          <h1 className="mt-4 text-3xl font-bold" style={{ color: '#2D4220' }}>Yummy</h1>
+          <p className="mt-1 text-sm" style={{ color: '#6B7A62' }}>Back Office — sign in to continue</p>
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+        <div className="rounded-2xl border bg-white p-8 shadow-sm" style={{ borderColor: '#D4E0CB' }}>
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <Input
               label="Email address"
@@ -89,16 +80,20 @@ export function LoginForm() {
             />
 
             {error && (
-              <div className="flex items-start gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <div className="flex items-start gap-2 rounded-lg p-3 text-sm" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <Button type="submit" className="w-full" loading={loading} size="lg">
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
+
+          <p className="mt-6 text-center text-xs" style={{ color: '#8A9E7A' }}>
+            Restaurant owners &amp; admins only
+          </p>
         </div>
       </div>
     </div>

@@ -1,8 +1,19 @@
-import type { User, AuthTokens } from '@/types'
+import type { User, AuthTokens, JwtPayload } from '@/types'
 
 const ACCESS_TOKEN_KEY = 'accessToken'
 const REFRESH_TOKEN_KEY = 'refreshToken'
 const USER_KEY = 'user'
+
+export function decodeJwt(token: string): JwtPayload | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload as JwtPayload
+  } catch {
+    return null
+  }
+}
 
 export function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null
@@ -30,6 +41,14 @@ export function setTokens(tokens: AuthTokens): void {
   localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken)
 }
 
+export function setUserFromJwt(accessToken: string): User | null {
+  const payload = decodeJwt(accessToken)
+  if (!payload) return null
+  const user: User = { id: payload.sub, email: payload.email, role: payload.role }
+  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  return user
+}
+
 export function setUser(user: User): void {
   localStorage.setItem(USER_KEY, JSON.stringify(user))
 }
@@ -38,13 +57,12 @@ export function clearAuth(): void {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
-  // Clear cookies
   document.cookie = 'accessToken=; path=/; max-age=0'
   document.cookie = 'userRole=; path=/; max-age=0'
 }
 
 export function setCookies(accessToken: string, role: string): void {
-  const maxAge = 60 * 60 * 24 // 24 hours
+  const maxAge = 60 * 60 * 24
   document.cookie = `accessToken=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`
   document.cookie = `userRole=${role}; path=/; max-age=${maxAge}; SameSite=Lax`
 }

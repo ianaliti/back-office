@@ -99,13 +99,14 @@ export default function MenuPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#685ED7]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#4E6939]" />
       </div>
     )
   }
 
   const groupedByCategory = dishes.reduce<Record<string, Dish[]>>((acc, dish) => {
-    acc[dish.category] = acc[dish.category] ? [...acc[dish.category], dish] : [dish]
+    const cat = dish.category ?? 'Uncategorized'
+    acc[cat] = acc[cat] ? [...acc[cat], dish] : [dish]
     return acc
   }, {})
 
@@ -172,7 +173,7 @@ export default function MenuPage() {
                         <button
                           onClick={() => handleToggleAvailable(dish)}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                            dish.available ? 'bg-[#685ED7]' : 'bg-gray-200'
+                            dish.available ? 'bg-[#4E6939]' : 'bg-gray-200'
                           }`}
                           aria-label={dish.available ? 'Mark unavailable' : 'Mark available'}
                         >

@@ -118,7 +118,7 @@ export default function MediaPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#685ED7]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#4E6939]" />
       </div>
     )
   }
@@ -133,7 +133,7 @@ export default function MediaPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-[#685ED7]" />
+            <ImageIcon className="h-5 w-5 text-[#4E6939]" />
             Photos
           </CardTitle>
           <CardDescription>Add photo URLs to showcase your restaurant</CardDescription>
@@ -190,7 +190,7 @@ export default function MediaPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Film className="h-5 w-5 text-[#685ED7]" />
+            <Film className="h-5 w-5 text-[#4E6939]" />
             Videos
           </CardTitle>
           <CardDescription>Add YouTube or video URLs for your restaurant</CardDescription>

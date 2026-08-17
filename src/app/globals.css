@@ -5,24 +5,27 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --primary: #685ED7;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --background: oklch(0.98 0.01 130);
+  --foreground: oklch(0.18 0.04 130);
+  --primary: #4E6939;
+  --primary-light: #6B8C4A;
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.94 0.02 130);
+  --secondary-foreground: oklch(0.25 0.05 130);
+  --muted: oklch(0.94 0.015 130);
+  --muted-foreground: oklch(0.5 0.03 130);
+  --accent: oklch(0.91 0.03 130);
+  --accent-foreground: oklch(0.25 0.05 130);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.88 0.02 130);
+  --input: oklch(0.92 0.015 130);
+  --ring: #4E6939;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --card-foreground: oklch(0.18 0.04 130);
+  --sidebar: #2D4220;
+  --sidebar-foreground: oklch(0.92 0.02 130);
+  --sidebar-active: #4E6939;
+  --sidebar-hover: rgba(255,255,255,0.08);
 }
 
 @theme inline {
@@ -49,11 +52,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
