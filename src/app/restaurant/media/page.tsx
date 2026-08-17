@@ -25,11 +25,12 @@ export default function MediaPage() {
   useEffect(() => {
     async function load() {
       try {
+        const user = (await import('@/lib/auth')).getUser()
         const restaurants = await getRestaurants()
-        if (restaurants.length > 0) {
-          const rid = restaurants[0].id
-          setRestaurantId(rid)
-          const dishes = await getDishes(rid)
+        const mine = restaurants.find((r) => r.ownerId === user?.id) ?? restaurants[0] ?? null
+        if (mine) {
+          setRestaurantId(mine.id)
+          const dishes = await getDishes(mine.id)
           setPhotos(dishes.filter((d) => d.category === 'Photo Media' && d.imageUrl))
           setVideos(dishes.filter((d) => d.category === 'Video Media'))
         }

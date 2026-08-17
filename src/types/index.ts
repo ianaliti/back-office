@@ -66,7 +66,7 @@ export interface Dish {
   id: string
   name: string
   description?: string
-  price: number
+  price: number | string  // Prisma Decimal serialised as string in JSON
   category?: string
   available: boolean
   imageUrl?: string
@@ -97,7 +97,13 @@ export interface PaginatedUsers {
 
 export interface RestaurantsListResponse {
   status: string
-  data: Restaurant[]
+  data: {
+    restaurants: Restaurant[]
+    total: number
+    page: number
+    limit: number
+    pages: number
+  }
 }
 
 export interface RestaurantResponse {

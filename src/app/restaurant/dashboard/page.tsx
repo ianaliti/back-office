@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Store, BookOpen, Image, UtensilsCrossed, ArrowRight, Loader2 } from 'lucide-react'
 import type { Restaurant, Dish } from '@/types'
+import { formatPrice } from '@/lib/utils'
 
 export default function RestaurantDashboardPage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
@@ -21,10 +22,10 @@ export default function RestaurantDashboardPage() {
     async function load() {
       try {
         const restaurants = await getRestaurants()
-        if (restaurants.length > 0) {
-          const first = restaurants[0]
-          setRestaurant(first)
-          const dishList = await getDishes(first.id)
+        const mine = restaurants.find((r) => r.ownerId === user?.id) ?? restaurants[0] ?? null
+        if (mine) {
+          setRestaurant(mine)
+          const dishList = await getDishes(mine.id)
           setDishes(dishList)
         }
       } catch (err) {
@@ -50,7 +51,7 @@ export default function RestaurantDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome */}
-      <div className="rounded-xl bg-gradient-to-r from-[#4E6939] to-[#8B7EE8] p-6 text-white">
+      <div className="rounded-xl bg-gradient-to-r from-[#2D4220] to-[#4E6939] p-6 text-white">
         <h2 className="text-2xl font-bold">
           Welcome back, {user?.displayName ?? 'Owner'}
         </h2>
@@ -91,8 +92,8 @@ export default function RestaurantDashboardPage() {
         </Card>
         <Card>
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50">
-              <Store className="h-6 w-6 text-purple-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#4E6939]/10">
+              <Store className="h-6 w-6 text-[#4E6939]" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{categories}</p>
@@ -169,7 +170,7 @@ export default function RestaurantDashboardPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-gray-900">
-                      ${dish.price.toFixed(2)}
+                      {formatPrice(dish.price)}
                     </span>
                     <Badge variant={dish.available ? 'success' : 'secondary'}>
                       {dish.available ? 'Available' : 'Unavailable'}

@@ -41,7 +41,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Banner */}
-      <div className="rounded-xl bg-gradient-to-r from-[#4E6939] to-[#8B7EE8] p-6 text-white">
+      <div className="rounded-xl bg-gradient-to-r from-[#2D4220] to-[#4E6939] p-6 text-white">
         <h2 className="text-2xl font-bold">Admin Dashboard</h2>
         <p className="mt-1 text-white/80">Overview of the Yummy platform</p>
       </div>

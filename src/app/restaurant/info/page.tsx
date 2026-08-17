@@ -17,10 +17,10 @@ export default function RestaurantInfoPage() {
   useEffect(() => {
     async function load() {
       try {
+        const user = (await import('@/lib/auth')).getUser()
         const restaurants = await getRestaurants()
-        if (restaurants.length > 0) {
-          setRestaurant(restaurants[0])
-        }
+        const mine = restaurants.find((r) => r.ownerId === user?.id) ?? restaurants[0] ?? null
+        setRestaurant(mine)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load restaurant')
       } finally {

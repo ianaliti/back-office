@@ -28,11 +28,12 @@ export default function MenuPage() {
   useEffect(() => {
     async function load() {
       try {
+        const user = (await import('@/lib/auth')).getUser()
         const restaurants = await getRestaurants()
-        if (restaurants.length > 0) {
-          const rid = restaurants[0].id
-          setRestaurantId(rid)
-          const list = await getDishes(rid)
+        const mine = restaurants.find((r) => r.ownerId === user?.id) ?? restaurants[0] ?? null
+        if (mine) {
+          setRestaurantId(mine.id)
+          const list = await getDishes(mine.id)
           setDishes(list)
         }
       } catch (err) {

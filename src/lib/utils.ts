@@ -5,11 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatPrice(price: number): string {
+// Prisma Decimal fields arrive as strings from the JSON API
+export function formatPrice(price: number | string): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-  }).format(price)
+  }).format(typeof price === 'string' ? parseFloat(price) : price)
 }
 
 export function formatDate(dateString: string): string {

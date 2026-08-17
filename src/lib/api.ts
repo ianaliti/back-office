@@ -149,7 +149,7 @@ export async function logout(): Promise<void> {
 export async function getRestaurants(): Promise<Restaurant[]> {
   const response = await fetchWithAuth(`${BASE_URL}/restaurants`)
   const data = await handleResponse<RestaurantsListResponse>(response)
-  return data.data
+  return data.data.restaurants
 }
 
 export async function getRestaurant(id: string): Promise<Restaurant> {
