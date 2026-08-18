@@ -52,6 +52,8 @@ export interface Restaurant {
   id: string
   name: string
   address: string
+  latitude: number
+  longitude: number
   phone?: string
   website?: string
   description?: string
@@ -123,4 +125,4 @@ export interface DishResponse {
 
 export type DishFormData = Omit<Dish, 'id' | 'restaurantId' | 'createdAt' | 'updatedAt'>
 
-export type RestaurantFormData = Omit<Restaurant, 'id' | 'ownerId' | 'createdAt' | 'updatedAt'>
+export type RestaurantFormData = Omit<Restaurant, 'id' | 'createdAt' | 'updatedAt'>

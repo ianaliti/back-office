@@ -2,29 +2,35 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getRestaurant, updateRestaurant } from '@/lib/api'
+import { getRestaurant, updateRestaurant, getUsers } from '@/lib/api'
 import { RestaurantForm } from '@/components/forms/RestaurantForm'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react'
-import type { Restaurant, RestaurantFormData } from '@/types'
+import type { Restaurant, RestaurantFormData, User } from '@/types'
 
 export default function EditRestaurantPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
+  const [owners, setOwners] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [loadError, setLoadError] = useState('')
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await getRestaurant(id)
+        const [data, usersData] = await Promise.all([
+          getRestaurant(id),
+          getUsers(1, 100),
+        ])
         setRestaurant(data)
+        setOwners(usersData.users.filter((u) => u.role === 'RESTAURANT_OWNER'))
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load restaurant')
+        setLoadError(err instanceof Error ? err.message : 'Failed to load restaurant')
       } finally {
         setLoading(false)
       }
@@ -35,7 +41,7 @@ export default function EditRestaurantPage() {
   async function handleSubmit(data: RestaurantFormData) {
     if (!restaurant) return
     setSaving(true)
-    setError('')
+    setSaveError('')
     setSuccess(false)
     try {
       const updated = await updateRestaurant(restaurant.id, data)
@@ -43,7 +49,7 @@ export default function EditRestaurantPage() {
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save')
+      setSaveError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
       setSaving(false)
     }
@@ -63,15 +69,16 @@ export default function EditRestaurantPage() {
         <ArrowLeft className="h-4 w-4" /> Back to Restaurants
       </Button>
 
+      {loadError && (
+        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{loadError}</div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>{restaurant?.name ?? 'Edit Restaurant'}</CardTitle>
           <CardDescription>Update the restaurant information</CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
-          )}
           {success && (
             <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700">
               <CheckCircle2 className="h-4 w-4" />
@@ -81,9 +88,11 @@ export default function EditRestaurantPage() {
           {restaurant ? (
             <RestaurantForm
               initial={restaurant}
+              owners={owners}
               onSubmit={handleSubmit}
               submitLabel="Save Changes"
               loading={saving}
+              error={saveError}
             />
           ) : (
             <p className="text-gray-500">Restaurant not found.</p>

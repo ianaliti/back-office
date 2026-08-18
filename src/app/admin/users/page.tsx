@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { User, UserRole } from '@/types'
 
-const ROLES: UserRole[] = ['CUSTOMER', 'RESTAURANT_OWNER', 'ADMIN']
+const ROLES: UserRole[] = ['RESTAURANT_OWNER', 'ADMIN']
 
 function roleBadgeVariant(role: UserRole) {
   if (role === 'ADMIN') return 'default' as const
@@ -34,9 +34,11 @@ export default function AdminUsersPage() {
     setError('')
     try {
       const data = await getUsers(p, 20)
-      setUsers(data.users)
+      // Back-office only manages ADMIN and RESTAURANT_OWNER accounts
+      const managed = data.users.filter((u) => u.role !== 'CUSTOMER')
+      setUsers(managed)
       setPages(data.pages)
-      setTotal(data.total)
+      setTotal(managed.length)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users')
     } finally {
