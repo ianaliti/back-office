@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getRestaurants, createRestaurant, deleteRestaurant, getUsers } from '@/lib/api'
-import { RestaurantForm } from '@/components/forms/RestaurantForm'
+import { getRestaurants, createRestaurantWithOwner, deleteRestaurant, getUsers } from '@/lib/api'
+import { RestaurantForm, type OwnerCredentials } from '@/components/forms/RestaurantForm'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Plus, Pencil, Trash2, Loader2, MapPin, Phone, Globe, User } from 'lucide-react'
+import { Plus, Pencil, Trash2, Loader2, MapPin, Phone, Globe, User, Search, CheckCircle2, X } from 'lucide-react'
 import type { Restaurant, RestaurantFormData, User as UserType } from '@/types'
 
 export default function AdminRestaurantsPage() {
@@ -20,6 +20,9 @@ export default function AdminRestaurantsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [createError, setCreateError] = useState('')
   const [creating, setCreating] = useState(false)
+  const [newCredentials, setNewCredentials] = useState<OwnerCredentials | null>(null)
+
+  const [search, setSearch] = useState('')
 
   const [deleteTarget, setDeleteTarget] = useState<Restaurant | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -43,15 +46,16 @@ export default function AdminRestaurantsPage() {
     }
   }
 
-  async function handleCreate(data: RestaurantFormData) {
+  async function handleCreate(data: RestaurantFormData, ownerCreds?: OwnerCredentials) {
+    if (!ownerCreds) return
     setCreating(true)
     setCreateError('')
     try {
-      const restaurant = await createRestaurant(data)
+      const restaurant = await createRestaurantWithOwner(ownerCreds.email, ownerCreds.password, data)
       setRestaurants((prev) => [restaurant, ...prev])
-      setCreateOpen(false)   // only close on success
+      setNewCredentials(ownerCreds)
+      setCreateOpen(false)
     } catch (err) {
-      // keep modal open, show error inside it
       setCreateError(err instanceof Error ? err.message : 'Failed to create restaurant')
     } finally {
       setCreating(false)
@@ -78,6 +82,17 @@ export default function AdminRestaurantsPage() {
     setCreateOpen(true)
   }
 
+  const filtered = search.trim()
+    ? restaurants.filter((r) => {
+        const q = search.toLowerCase()
+        return (
+          r.name.toLowerCase().includes(q) ||
+          r.cuisine?.toLowerCase().includes(q) ||
+          r.address?.toLowerCase().includes(q)
+        )
+      })
+    : restaurants
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -95,11 +110,51 @@ export default function AdminRestaurantsPage() {
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{deleteError}</div>
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">{restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''}</p>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Add Restaurant
-        </Button>
+      {newCredentials && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+              <div>
+                <p className="font-semibold">Restaurant created! Share these login credentials with the owner:</p>
+                <p className="mt-1.5 font-mono">
+                  Email: <span className="font-bold">{newCredentials.email}</span>
+                </p>
+                <p className="font-mono">
+                  Password: <span className="font-bold">{newCredentials.password}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setNewCredentials(null)}
+              className="shrink-0 rounded p-1 hover:bg-green-100"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4 text-green-600" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search by name, cuisine, address…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#4E6939] focus:outline-none focus:ring-1 focus:ring-[#4E6939]"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-gray-500 whitespace-nowrap">
+            {filtered.length} of {restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''}
+          </p>
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" /> Add Restaurant
+          </Button>
+        </div>
       </div>
 
       {restaurants.length === 0 ? (
@@ -111,9 +166,15 @@ export default function AdminRestaurantsPage() {
             </Button>
           </CardContent>
         </Card>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center py-16">
+            <p className="text-gray-500">No restaurants match &ldquo;{search}&rdquo;.</p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {restaurants.map((r) => {
+          {filtered.map((r) => {
             const ownerName = owners.find((u) => u.id === r.ownerId)
             return (
               <Card key={r.id} className="hover:shadow-md transition-shadow">
@@ -173,14 +234,14 @@ export default function AdminRestaurantsPage() {
         open={createOpen}
         onClose={() => { setCreateOpen(false); setCreateError('') }}
         title="Add Restaurant"
-        description="Fill in the details. Fields marked * are required."
+        description="Enter the owner's login credentials and the restaurant name. Address and location can be completed later by the owner."
         className="max-w-2xl"
       >
         <RestaurantForm
-          owners={owners}
+          mode="create"
           onSubmit={handleCreate}
           onCancel={() => { setCreateOpen(false); setCreateError('') }}
-          submitLabel="Create Restaurant"
+          submitLabel="Create Restaurant & Account"
           loading={creating}
           error={createError}
         />

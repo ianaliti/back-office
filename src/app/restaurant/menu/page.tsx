@@ -30,7 +30,11 @@ export default function MenuPage() {
       try {
         const user = (await import('@/lib/auth')).getUser()
         const restaurants = await getRestaurants()
-        const mine = restaurants.find((r) => r.ownerId === user?.id) ?? restaurants[0] ?? null
+        // Prefer an explicit ownerId match; fall back to first result only when
+        // the backend already scopes the list to the authenticated owner.
+        const mine =
+          restaurants.find((r) => r.ownerId === user?.id) ??
+          (restaurants.length === 1 ? restaurants[0] : null)
         if (mine) {
           setRestaurantId(mine.id)
           const list = await getDishes(mine.id)
@@ -101,6 +105,14 @@ export default function MenuPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#4E6939]" />
+      </div>
+    )
+  }
+
+  if (!restaurantId) {
+    return (
+      <div className="rounded-xl bg-yellow-50 p-6 text-yellow-700">
+        No restaurant is assigned to your account. Contact an administrator.
       </div>
     )
   }

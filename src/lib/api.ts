@@ -133,6 +133,33 @@ export async function login(email: string, password: string): Promise<{ accessTo
   return { accessToken, refreshToken, user }
 }
 
+export async function createRestaurantWithOwner(
+  ownerEmail: string,
+  ownerPassword: string,
+  restaurantData: RestaurantFormData
+): Promise<Restaurant> {
+  // 1. Register the owner account (unauthenticated)
+  const regResponse = await fetch(`${BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: ownerEmail, password: ownerPassword, displayName: restaurantData.name }),
+  })
+  const regData = await handleResponse<AuthResponse>(regResponse)
+
+  // Decode the returned JWT to extract the new user's ID
+  const { decodeJwt } = await import('./auth')
+  const payload = decodeJwt(regData.data.accessToken)
+  if (!payload) throw new Error('Failed to decode registration token')
+  const userId = payload.sub
+
+  // 2. Elevate the new account to RESTAURANT_OWNER
+  await updateUserRole(userId, 'RESTAURANT_OWNER')
+
+  // 3. Create the restaurant linked to the new owner
+  const restaurant = await createRestaurant({ ...restaurantData, ownerId: userId })
+  return restaurant
+}
+
 export async function logout(): Promise<void> {
   const refreshToken = getRefreshToken()
   try {
