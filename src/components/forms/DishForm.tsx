@@ -22,6 +22,27 @@ const CATEGORIES = [
   'Autres',
 ]
 
+const inputClass = 'w-full rounded-xl border border-[#E5E0D8] bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-[#4E6939]'
+const labelClass = 'block text-xs font-medium text-gray-500 mb-1.5'
+
+function compressImage(file: File): Promise<string> {
+  return new Promise(resolve => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      const max = 800
+      const scale = Math.min(1, max / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(objectUrl)
+      resolve(canvas.toDataURL('image/jpeg', 0.72))
+    }
+    img.src = objectUrl
+  })
+}
+
 export function DishForm({
   initial,
   onSubmit,
@@ -39,13 +60,10 @@ export function DishForm({
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function loadFile(file: File) {
+  async function loadFile(file: File) {
     if (!file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setImageUrl(e.target?.result as string)
-    }
-    reader.readAsDataURL(file)
+    const compressed = await compressImage(file)
+    setImageUrl(compressed)
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -65,8 +83,8 @@ export function DishForm({
     if (!name.trim()) newErrors.name = 'Le nom est requis'
     if (!price) {
       newErrors.price = 'Le prix est requis'
-    } else if (isNaN(Number(price)) || Number(price) < 0) {
-      newErrors.price = 'Prix invalide'
+    } else if (isNaN(Number(price)) || Number(price) <= 0) {
+      newErrors.price = 'Le prix doit être supérieur à 0'
     }
     if (!category) newErrors.category = 'La catégorie est requise'
     setErrors(newErrors)
@@ -86,41 +104,21 @@ export function DishForm({
     })
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    borderRadius: '0.75rem',
-    border: '1px solid #E5E0D8',
-    padding: '0.625rem 0.875rem',
-    fontSize: '0.875rem',
-    color: '#111827',
-    background: 'white',
-    outline: 'none',
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    color: '#6B7280',
-    marginBottom: '0.375rem',
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
 
       {/* Photo upload */}
       <div>
-        <label style={labelStyle}>Photo du plat</label>
+        <label className={labelClass}>Photo du plat</label>
 
         {imageUrl ? (
-          <div className="relative rounded-xl overflow-hidden" style={{ height: 160 }}>
+          <div className="relative rounded-xl overflow-hidden h-40">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={imageUrl} alt="Aperçu" className="w-full h-full object-cover" />
             <button
               type="button"
               onClick={() => { setImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
-              className="absolute top-2 right-2 flex items-center justify-center rounded-full p-1.5"
-              style={{ background: 'rgba(0,0,0,0.5)', color: 'white' }}
+              className="absolute top-2 right-2 flex items-center justify-center rounded-full bg-black/50 p-1.5 text-white"
               title="Supprimer la photo"
             >
               <X style={{ width: 14, height: 14 }} />
@@ -128,8 +126,7 @@ export function DishForm({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium"
-              style={{ background: 'rgba(0,0,0,0.55)', color: 'white' }}
+              className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-lg bg-black/55 px-2.5 py-1.5 text-xs font-medium text-white"
             >
               <ImagePlus style={{ width: 13, height: 13 }} />
               Changer
@@ -139,17 +136,14 @@ export function DishForm({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors"
-            style={{
-              height: 130,
-              borderColor: dragOver ? '#4E6939' : '#D1D5DB',
-              background: dragOver ? 'rgba(78,105,57,0.04)' : '#FAFAFA',
-              color: dragOver ? '#4E6939' : '#9CA3AF',
-              cursor: 'pointer',
-            }}
+            className={`flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors h-[130px] ${
+              dragOver
+                ? 'border-[#4E6939] bg-[#4E6939]/5 text-[#4E6939]'
+                : 'border-gray-300 bg-[#FAFAFA] text-gray-400'
+            }`}
           >
             <ImagePlus style={{ width: 24, height: 24 }} />
             <div className="text-center">
@@ -171,69 +165,63 @@ export function DishForm({
 
       {/* Nom */}
       <div>
-        <label style={labelStyle}>Nom du plat</label>
+        <label className={labelClass}>Nom du plat</label>
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={e => setName(e.target.value)}
           placeholder="Ex : Burger Avocat"
           disabled={loading}
-          style={inputStyle}
-          onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
-          onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+          className={inputClass}
         />
-        {errors.name && <p className="mt-1 text-xs" style={{ color: '#EF4444' }}>{errors.name}</p>}
+        {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
       </div>
 
       {/* Description */}
       <div>
-        <label style={labelStyle}>Description <span style={{ color: '#9CA3AF' }}>(optionnel)</span></label>
+        <label className={labelClass}>
+          Description <span className="text-gray-400">(optionnel)</span>
+        </label>
         <textarea
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={e => setDescription(e.target.value)}
           placeholder="Ingrédients, mode de préparation…"
           rows={2}
           disabled={loading}
-          style={{ ...inputStyle, resize: 'none' }}
-          onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
-          onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+          className={`${inputClass} resize-none`}
         />
       </div>
 
       {/* Prix + Catégorie */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label style={labelStyle}>Prix (€)</label>
+          <label className={labelClass}>Prix (€)</label>
           <input
             type="number"
             min="0"
             step="0.01"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            onChange={e => setPrice(e.target.value)}
             placeholder="12,50"
             disabled={loading}
-            style={inputStyle}
-            onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
-            onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+            className={inputClass}
           />
-          {errors.price && <p className="mt-1 text-xs" style={{ color: '#EF4444' }}>{errors.price}</p>}
+          {errors.price && <p className="mt-1 text-xs text-red-500">{errors.price}</p>}
         </div>
 
         <div>
-          <label style={labelStyle}>Catégorie</label>
+          <label className={labelClass}>Catégorie</label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={e => setCategory(e.target.value)}
             disabled={loading}
-            style={{ ...inputStyle, appearance: 'auto' }}
-            onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
-            onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+            className={`${inputClass} appearance-auto`}
           >
-            {CATEGORIES.map((cat) => (
+            {CATEGORIES.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
-          {errors.category && <p className="mt-1 text-xs" style={{ color: '#EF4444' }}>{errors.category}</p>}
+          {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category}</p>}
         </div>
       </div>
 
@@ -245,26 +233,14 @@ export function DishForm({
           aria-checked={available}
           onClick={() => setAvailable(!available)}
           disabled={loading}
-          className="relative inline-flex items-center rounded-full transition-colors"
-          style={{
-            width: 36,
-            height: 20,
-            background: available ? '#4E6939' : '#D1D5DB',
-            flexShrink: 0,
-          }}
+          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${available ? 'bg-[#4E6939]' : 'bg-gray-300'}`}
         >
           <span
-            className="inline-block rounded-full bg-white shadow transition-transform"
-            style={{
-              width: 14,
-              height: 14,
-              transform: available ? 'translateX(18px)' : 'translateX(2px)',
-            }}
+            className="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform"
+            style={{ transform: available ? 'translateX(18px)' : 'translateX(2px)' }}
           />
         </button>
-        <span className="text-sm" style={{ color: '#374151' }}>
-          Disponible à la commande
-        </span>
+        <span className="text-sm text-gray-700">Disponible à la commande</span>
       </div>
 
       {/* Actions */}
@@ -273,16 +249,14 @@ export function DishForm({
           type="button"
           onClick={onCancel}
           disabled={loading}
-          className="rounded-xl px-4 py-2 text-sm font-medium"
-          style={{ border: '1px solid #E5E0D8', background: 'white', color: '#374151' }}
+          className="rounded-xl border border-[#E5E0D8] bg-white px-4 py-2 text-sm font-medium text-gray-700"
         >
           Annuler
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-60"
-          style={{ background: '#2D3B1F', color: '#C8E86A' }}
+          className="flex items-center gap-2 rounded-xl bg-[#2D3B1F] px-4 py-2 text-sm font-semibold text-[#C8E86A] disabled:opacity-60"
         >
           {loading && (
             <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">

@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getMyRestaurant, getDishes, createDish, updateDish } from '@/lib/api'
-import { Loader2, Save, ImagePlus } from 'lucide-react'
+import { Loader2, Save, ImagePlus, X } from 'lucide-react'
 import Link from 'next/link'
 import type { Restaurant, Dish } from '@/types'
 
@@ -47,6 +47,24 @@ const STATUS_STYLE: Record<AllergenStatus, { bg: string; text: string; label: st
 
 const CATEGORIES = ['Entrées', 'Plats', 'Desserts', 'Boissons']
 
+function compressImage(file: File): Promise<string> {
+  return new Promise(resolve => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      const max = 800
+      const scale = Math.min(1, max / Math.max(img.width, img.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+      URL.revokeObjectURL(objectUrl)
+      resolve(canvas.toDataURL('image/jpeg', 0.72))
+    }
+    img.src = objectUrl
+  })
+}
+
 const LS_KEY = 'yumnut_dish_allergens'
 
 type LocalData = Record<string, { allergens: Record<string, AllergenStatus>; diets: string[] }>
@@ -75,6 +93,8 @@ export default function DishEditPage() {
   const [price, setPrice] = useState('')
   const [description, setDescription] = useState('')
   const [available, setAvailable] = useState(true)
+  const [imageUrl, setImageUrl] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [selectedDiets, setSelectedDiets] = useState<string[]>([])
   const [allergenStatus, setAllergenStatus] = useState<Record<string, AllergenStatus | null>>({})
@@ -94,6 +114,7 @@ export default function DishEditPage() {
             setPrice(String(found.price ?? ''))
             setDescription(found.description ?? '')
             setAvailable(found.available)
+            setImageUrl(found.imageUrl ?? '')
           }
           const local = readLocalData()
           if (local[id]) {
@@ -121,10 +142,10 @@ export default function DishEditPage() {
       const formData = {
         name: name.trim(),
         category,
-        price: parseFloat(price) || 0,
+        price: Math.max(parseFloat(price) || 0.01, 0.01),
         description: description.trim(),
         available,
-        imageUrl: dish?.imageUrl,
+        imageUrl: imageUrl || undefined,
       }
       if (isNew) {
         const created = await createDish(restaurant.id, formData)
@@ -229,12 +250,47 @@ export default function DishEditPage() {
             <p className="mb-5 text-sm font-semibold" style={{ color: '#111827' }}>Informations du plat</p>
             <div className="flex gap-5">
               {/* Image */}
-              <div
-                className="flex h-28 w-28 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer"
-                style={{ borderColor: '#E5E0D8', background: '#F9F7F4' }}
-              >
-                <ImagePlus className="h-6 w-6 mb-1" style={{ color: '#D1D5DB' }} />
-                <span className="text-[10px] text-center px-2" style={{ color: '#9CA3AF' }}>Ajouter une photo</span>
+              <div className="relative h-28 w-28 shrink-0">
+                {imageUrl ? (
+                  <>
+                    <img src={imageUrl} alt="Aperçu" className="h-28 w-28 rounded-xl object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setImageUrl(''); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                      aria-label="Supprimer la photo"
+                    >
+                      <X style={{ width: 10, height: 10 }} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-1.5 right-1.5 rounded-md bg-black/50 px-1.5 py-0.5 text-[9px] font-medium text-white"
+                    >
+                      Changer
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-28 w-28 flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors hover:border-[#4E6939] hover:text-[#4E6939]"
+                    style={{ borderColor: '#E5E0D8', background: '#F9F7F4', color: '#9CA3AF' }}
+                  >
+                    <ImagePlus className="h-6 w-6 mb-1" />
+                    <span className="text-[10px] text-center px-2">Ajouter une photo</span>
+                  </button>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async e => {
+                    const file = e.target.files?.[0]
+                    if (file) setImageUrl(await compressImage(file))
+                  }}
+                />
               </div>
 
               <div className="flex-1 space-y-3">

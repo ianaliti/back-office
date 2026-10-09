@@ -63,6 +63,7 @@ export interface Restaurant {
   website?: string
   description?: string
   cuisine?: string
+  image?: string
   openingHours?: OpeningHours | string
   ownerId?: string
   diets?: DietTag[]

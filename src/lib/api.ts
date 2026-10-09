@@ -232,28 +232,53 @@ export async function deleteRestaurant(id: string): Promise<void> {
 }
 
 // Dishes
+// Backend uses `image` / `isAvailable`; frontend uses `imageUrl` / `available`.
+function mapDishFromApi(d: any): Dish {
+  return {
+    id: d.id,
+    restaurantId: d.restaurantId,
+    name: d.name,
+    description: d.description ?? undefined,
+    price: d.price,
+    category: d.category,
+    available: d.isAvailable ?? d.available ?? true,
+    imageUrl: d.image ?? d.imageUrl ?? undefined,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+  }
+}
+
+function mapDishToApi(formData: Partial<DishFormData>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(formData)) {
+    if (v !== undefined) result[k] = v
+  }
+  return result
+}
+
 export async function getDishes(restaurantId: string): Promise<Dish[]> {
   const response = await fetchWithAuth(`${BASE_URL}/restaurants/${restaurantId}/dishes`)
-  const data = await handleResponse<DishesListResponse>(response)
-  return data.data
+  const data = await handleResponse<any>(response)
+  const list: any[] = Array.isArray(data) ? data : (data.data ?? [])
+  return list.map(mapDishFromApi)
 }
 
 export async function createDish(restaurantId: string, formData: DishFormData): Promise<Dish> {
   const response = await fetchWithAuth(`${BASE_URL}/restaurants/${restaurantId}/dishes`, {
     method: 'POST',
-    body: JSON.stringify(formData),
+    body: JSON.stringify(mapDishToApi(formData)),
   })
-  const data = await handleResponse<DishResponse>(response)
-  return data.data
+  const data = await handleResponse<any>(response)
+  return mapDishFromApi(data.data ?? data)
 }
 
 export async function updateDish(restaurantId: string, dishId: string, formData: Partial<DishFormData>): Promise<Dish> {
   const response = await fetchWithAuth(`${BASE_URL}/restaurants/${restaurantId}/dishes/${dishId}`, {
     method: 'PATCH',
-    body: JSON.stringify(formData),
+    body: JSON.stringify(mapDishToApi(formData)),
   })
-  const data = await handleResponse<DishResponse>(response)
-  return data.data
+  const data = await handleResponse<any>(response)
+  return mapDishFromApi(data.data ?? data)
 }
 
 export async function deleteDish(restaurantId: string, dishId: string): Promise<void> {
