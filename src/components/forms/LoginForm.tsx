@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { login } from '@/lib/api'
 import { setTokens, setCookies } from '@/lib/auth'
-import { Input } from '@/components/ui/Input'
-import { Button } from '@/components/ui/Button'
-import { Leaf, AlertCircle } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import { Leaf, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export function LoginForm() {
   const router = useRouter()
+  const { setUser } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -19,8 +19,8 @@ export function LoginForm() {
     e.preventDefault()
     setError('')
 
-    if (!email.trim()) { setError('Email is required'); return }
-    if (!password) { setError('Password is required'); return }
+    if (!email.trim()) { setError("L'adresse e-mail est requise."); return }
+    if (!password) { setError('Le mot de passe est requis.'); return }
 
     setLoading(true)
     try {
@@ -28,71 +28,187 @@ export function LoginForm() {
 
       setTokens({ accessToken, refreshToken })
       setCookies(accessToken, user.role)
+      setUser(user)
 
       if (user.role === 'ADMIN') {
         router.push('/admin/dashboard')
       } else if (user.role === 'RESTAURANT_OWNER') {
         router.push('/restaurant/dashboard')
       } else {
-        setError('Access denied. Only restaurant owners and admins can log in.')
+        setError('Accès refusé. Seuls les restaurateurs et administrateurs peuvent se connecter.')
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials. Please try again.')
+      setError(err instanceof Error ? err.message : 'Identifiants incorrects. Veuillez réessayer.')
     } finally {
       setLoading(false)
     }
   }
 
+  const bullets = [
+    'Gérez vos plats et allergènes en temps réel',
+    'Suivez vos réservations et avis clients',
+    'Obtenez votre badge cuisine inclusive',
+  ]
+
   return (
-    <div className="flex min-h-screen items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #f0f4ec 0%, #e8f0e4 100%)' }}>
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-8 flex flex-col items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg" style={{ background: 'linear-gradient(135deg, #4E6939 0%, #6B8C4A 100%)' }}>
-            <Leaf className="h-8 w-8 text-white" />
+    <div className="flex min-h-screen">
+      {/* Left column */}
+      <div
+        className="hidden lg:flex lg:w-[55%] flex-col justify-between p-10"
+        style={{ background: '#2D3B1F' }}
+      >
+        {/* Top: logo */}
+        <div className="flex items-center gap-2">
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-md"
+            style={{ background: '#4E6939' }}
+          >
+            <Leaf className="h-3.5 w-3.5 text-white" />
           </div>
-          <h1 className="mt-4 text-3xl font-bold" style={{ color: '#2D4220' }}>Yummy</h1>
-          <p className="mt-1 text-sm" style={{ color: '#6B7A62' }}>Back Office — sign in to continue</p>
+          <span className="text-sm font-bold text-white">yum'nut</span>
+          <span
+            className="rounded px-1.5 py-0.5 text-[10px] font-bold"
+            style={{ background: '#C8E86A', color: '#1A2E0A' }}
+          >
+            bo
+          </span>
         </div>
 
-        {/* Card */}
-        <div className="rounded-2xl border bg-white p-8 shadow-sm" style={{ borderColor: '#D4E0CB' }}>
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-            <Input
-              label="Email address"
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              disabled={loading}
-            />
-            <Input
-              label="Password"
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              disabled={loading}
-            />
+        {/* Middle: headline + bullets */}
+        <div>
+          <h2 className="text-3xl font-bold text-white leading-snug">
+            Valorisez votre<br />cuisine inclusive
+          </h2>
+          <ul className="mt-6 space-y-3">
+            {bullets.map((bullet) => (
+              <li key={bullet} className="flex items-start gap-3">
+                <CheckCircle2
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  style={{ color: '#C8E86A' }}
+                />
+                <span className="text-sm" style={{ color: '#8FA87A' }}>
+                  {bullet}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
+        {/* Bottom: decorative quote */}
+        <p className="text-xs" style={{ color: '#4E6939' }}>
+          "Une cuisine inclusive, c'est une cuisine qui accueille tout le monde."
+        </p>
+      </div>
+
+      {/* Right column */}
+      <div className="flex flex-1 items-center justify-center bg-white px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo (shown only on small screens) */}
+          <div className="mb-8 flex items-center gap-2 lg:hidden">
+            <div
+              className="flex h-7 w-7 items-center justify-center rounded-md"
+              style={{ background: '#2D3B1F' }}
+            >
+              <Leaf className="h-3.5 w-3.5 text-white" />
+            </div>
+            <span className="text-sm font-bold" style={{ color: '#2D3B1F' }}>yum'nut</span>
+            <span
+              className="rounded px-1.5 py-0.5 text-[10px] font-bold"
+              style={{ background: '#C8E86A', color: '#1A2E0A' }}
+            >
+              bo
+            </span>
+          </div>
+
+          <h1 className="text-2xl font-bold" style={{ color: '#111827' }}>
+            Connexion
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: '#6B7280' }}>
+            Accédez à votre espace restaurateur
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium"
+                style={{ color: '#111827' }}
+              >
+                Adresse e-mail
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@exemple.com"
+                autoComplete="email"
+                disabled={loading}
+                className="block w-full rounded-lg px-3 py-2.5 text-sm outline-none transition disabled:opacity-60"
+                style={{
+                  border: '1px solid #E5E0D8',
+                  background: '#FAFAF9',
+                  color: '#111827',
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = '#4E6939')}
+                onBlur={(e) => (e.currentTarget.style.borderColor = '#E5E0D8')}
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium"
+                style={{ color: '#111827' }}
+              >
+                Mot de passe
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                disabled={loading}
+                className="block w-full rounded-lg px-3 py-2.5 text-sm outline-none transition disabled:opacity-60"
+                style={{
+                  border: '1px solid #E5E0D8',
+                  background: '#FAFAF9',
+                  color: '#111827',
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = '#4E6939')}
+                onBlur={(e) => (e.currentTarget.style.borderColor = '#E5E0D8')}
+              />
+            </div>
+
+            {/* Error */}
             {error && (
-              <div className="flex items-start gap-2 rounded-lg p-3 text-sm" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
+              <div
+                className="flex items-start gap-2 rounded-lg p-3 text-sm"
+                role="alert"
+                style={{ background: '#FEF2F2', color: '#B91C1C' }}
+              >
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            <Button type="submit" className="w-full" loading={loading} size="lg">
-              {loading ? 'Signing in…' : 'Sign in'}
-            </Button>
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:opacity-60"
+              style={{ background: '#2D3B1F', color: '#C8E86A' }}
+            >
+              {loading ? 'Connexion en cours…' : 'Se connecter'}
+            </button>
           </form>
 
-          <p className="mt-6 text-center text-xs" style={{ color: '#8A9E7A' }}>
-            Restaurant owners &amp; admins only
+          <p className="mt-6 text-center text-xs" style={{ color: '#9CA3AF' }}>
+            Restaurateurs &amp; administrateurs uniquement
           </p>
         </div>
       </div>

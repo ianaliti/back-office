@@ -10,7 +10,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden" style={{ background: '#F2EDE4' }}>
       <Sidebar role={role} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />

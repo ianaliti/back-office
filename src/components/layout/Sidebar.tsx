@@ -3,55 +3,65 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { clearAuth } from '@/lib/auth'
+import { clearAuth, getUser } from '@/lib/auth'
 import { useAuth } from '@/context/AuthContext'
 import * as api from '@/lib/api'
 import {
   LayoutDashboard,
   Store,
   BookOpen,
-  Image,
-  Users,
-  BarChart3,
+  CalendarDays,
+  Star,
+  Award,
+  Settings,
   Leaf,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
-  UtensilsCrossed,
+  Bell,
+  HelpCircle,
+  ExternalLink,
+  FileText,
 } from 'lucide-react'
-import { useState } from 'react'
-import type { UserRole } from '@/types'
+import { useState, useEffect } from 'react'
 
-interface NavItem {
-  label: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-}
-
-const restaurantNav: NavItem[] = [
-  { label: 'Dashboard', href: '/restaurant/dashboard', icon: LayoutDashboard },
-  { label: 'Restaurant Info', href: '/restaurant/info', icon: Store },
-  { label: 'Menu', href: '/restaurant/menu', icon: UtensilsCrossed },
-  { label: 'Media', href: '/restaurant/media', icon: Image },
+const navItems = [
+  { label: 'Tableau de bord', href: '/restaurant/dashboard', icon: LayoutDashboard },
+  { label: 'Carte & allergènes', href: '/restaurant/allergens', icon: BookOpen },
+  { label: 'Fiche publique', href: '/restaurant/fiche', icon: FileText },
+  { label: 'Réservations', href: '/restaurant/reservations', icon: CalendarDays },
+  { label: 'Avis clients', href: '/restaurant/reviews', icon: Star },
+  { label: 'Badge & certification', href: '/restaurant/badge', icon: Award },
+  { label: 'Paramètres', href: '/restaurant/settings', icon: Settings },
 ]
 
-const adminNav: NavItem[] = [
-  { label: 'Dashboard', href: '/admin/dashboard', icon: BarChart3 },
+const adminNavItems = [
+  { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Restaurants', href: '/admin/restaurants', icon: Store },
-  { label: 'Users', href: '/admin/users', icon: Users },
+  { label: 'Utilisateurs', href: '/admin/users', icon: Star },
 ]
 
 interface SidebarProps {
-  role: UserRole
+  role: 'ADMIN' | 'RESTAURANT_OWNER' | string
 }
 
 export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const [collapsed, setCollapsed] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const { user } = useAuth()
-  const navItems = role === 'ADMIN' ? adminNav : restaurantNav
+  const [restaurantName, setRestaurantName] = useState<string>('')
+
+  useEffect(() => {
+    if (role === 'ADMIN') return
+    api.getMyRestaurant()
+      .then((r) => setRestaurantName(r.name))
+      .catch(() => {/* silently ignore — name stays empty */})
+  }, [role])
+
+  const items = role === 'ADMIN' ? adminNavItems : navItems
+
+  const initials = user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : 'YB'
 
   async function handleLogout() {
     setLoggingOut(true)
@@ -67,65 +77,85 @@ export function Sidebar({ role }: SidebarProps) {
 
   return (
     <aside
-      className={cn(
-        'flex h-screen flex-col transition-all duration-300',
-        collapsed ? 'w-16' : 'w-64'
-      )}
-      style={{ background: '#2D4220', color: '#D4E0CB' }}
+      className="flex h-screen flex-col shrink-0"
+      style={{ width: 220, background: '#2D3B1F', color: '#D4E0CB' }}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between px-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: '#4E6939' }}>
-              <Leaf className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-bold text-white">Yummy</span>
+      <div
+        className="flex items-center justify-between px-4 py-4"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <div className="flex items-center gap-2">
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-md"
+            style={{ background: '#4E6939' }}
+          >
+            <Leaf className="h-3.5 w-3.5 text-white" />
           </div>
-        )}
+          <span className="text-sm font-bold text-white">yum'nut</span>
+          <span
+            className="rounded px-1.5 py-0.5 text-[10px] font-bold"
+            style={{ background: '#C8E86A', color: '#1A2E0A' }}
+          >
+            bo
+          </span>
+        </div>
         <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="rounded-md p-1.5 transition-colors"
+          className="rounded p-1 transition-colors"
           style={{ color: '#8FA87A' }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onMouseEnter={e => (e.currentTarget.style.color = '#C8E86A')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#8FA87A')}
+          aria-label="Notifications"
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          <Bell className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Role badge */}
-      {!collapsed && (
-        <div className="px-4 py-3">
-          <span className="rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide" style={{ background: '#4E6939', color: '#D4E0CB' }}>
-            {role === 'ADMIN' ? 'Admin' : 'Restaurant'}
-          </span>
+      {/* Restaurant name */}
+      {role !== 'ADMIN' && (
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
+              style={{ background: '#4E6939', color: '#C8E86A' }}
+            >
+              {restaurantName ? restaurantName.charAt(0).toUpperCase() : '?'}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs font-semibold text-white">
+                {restaurantName || 'Mon restaurant'}
+              </p>
+              <p className="text-[10px]" style={{ color: '#8FA87A' }}>Restaurant</p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-2">
-        <ul className="space-y-0.5 px-2">
-          {navItems.map((item) => {
+      <nav className="flex-1 overflow-y-auto py-3 px-2">
+        <ul className="space-y-0.5">
+          {items.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    'flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-all',
                   )}
                   style={{
-                    background: isActive ? '#4E6939' : 'transparent',
-                    color: isActive ? '#ffffff' : '#A8C09A',
+                    background: isActive ? '#C8E86A' : 'transparent',
+                    color: isActive ? '#1A2E0A' : '#8FA87A',
                   }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-                  title={collapsed ? item.label : undefined}
+                  onMouseEnter={e => {
+                    if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                  }}
+                  onMouseLeave={e => {
+                    if (!isActive) e.currentTarget.style.background = 'transparent'
+                  }}
                 >
-                  <item.icon className="h-5 w-5 shrink-0" />
-                  {!collapsed && <span>{item.label}</span>}
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  <span>{item.label}</span>
                 </Link>
               </li>
             )
@@ -133,28 +163,57 @@ export function Sidebar({ role }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* User / Logout */}
-      <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {!collapsed && user && (
-          <div className="mb-3 rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <p className="text-xs font-medium text-white truncate">{user.displayName || user.email}</p>
-            <p className="text-xs truncate" style={{ color: '#8FA87A' }}>{user.email}</p>
+      {/* Footer nav */}
+      {role !== 'ADMIN' && (
+        <div className="px-2 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          {[
+            { label: 'Aide & support', icon: HelpCircle, href: '#' },
+            { label: "Ma fiche dans l'app", icon: ExternalLink, href: '#' },
+          ].map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium"
+              style={{ color: '#8FA87A' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              {item.label}
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* User */}
+      <div className="p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="mb-2 flex items-center gap-2.5 rounded-lg px-2 py-2">
+          <div
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+            style={{ background: '#4E6939', color: '#C8E86A' }}
+          >
+            {initials}
           </div>
-        )}
+          <p className="truncate text-xs" style={{ color: '#8FA87A' }}>
+            {user?.email ?? ''}
+          </p>
+        </div>
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-            'disabled:opacity-50 disabled:cursor-not-allowed'
-          )}
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50"
           style={{ color: '#8FA87A' }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; e.currentTarget.style.color = '#fca5a5' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8FA87A' }}
-          title={collapsed ? 'Logout' : undefined}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = '#fca5a5'
+            e.currentTarget.style.background = 'rgba(239,68,68,0.12)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = '#8FA87A'
+            e.currentTarget.style.background = 'transparent'
+          }}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>{loggingOut ? 'Logging out…' : 'Logout'}</span>}
+          <span>{loggingOut ? 'Déconnexion…' : 'Se déconnecter'}</span>
         </button>
       </div>
     </aside>

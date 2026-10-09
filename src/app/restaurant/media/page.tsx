@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { getRestaurants, getDishes, createDish, deleteDish } from '@/lib/api'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Plus, Trash2, Loader2, Image as ImageIcon, Film } from 'lucide-react'
 import type { Dish } from '@/types'
@@ -35,7 +32,7 @@ export default function MediaPage() {
           setVideos(dishes.filter((d) => d.category === 'Video Media'))
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load')
+        setError(err instanceof Error ? err.message : 'Erreur de chargement')
       } finally {
         setLoading(false)
       }
@@ -49,7 +46,7 @@ export default function MediaPage() {
     setError('')
     try {
       const dish = await createDish(restaurantId, {
-        name: `Photo - ${new Date().toLocaleDateString()}`,
+        name: `Photo - ${new Date().toLocaleDateString('fr-FR')}`,
         price: 0,
         category: 'Photo Media',
         available: true,
@@ -58,7 +55,7 @@ export default function MediaPage() {
       setPhotos((prev) => [...prev, dish])
       setPhotoUrl('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add photo')
+      setError(err instanceof Error ? err.message : "Erreur lors de l'ajout de la photo")
     } finally {
       setAddingPhoto(false)
     }
@@ -70,7 +67,7 @@ export default function MediaPage() {
     setError('')
     try {
       const dish = await createDish(restaurantId, {
-        name: `Video - ${new Date().toLocaleDateString()}`,
+        name: `Vidéo - ${new Date().toLocaleDateString('fr-FR')}`,
         price: 0,
         category: 'Video Media',
         available: true,
@@ -79,7 +76,7 @@ export default function MediaPage() {
       setVideos((prev) => [...prev, dish])
       setVideoUrl('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add video')
+      setError(err instanceof Error ? err.message : "Erreur lors de l'ajout de la vidéo")
     } finally {
       setAddingVideo(false)
     }
@@ -94,7 +91,7 @@ export default function MediaPage() {
       setVideos((prev) => prev.filter((v) => v.id !== deleteTarget.id))
       setDeleteTarget(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete')
+      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression')
     } finally {
       setDeleteLoading(false)
     }
@@ -111,7 +108,7 @@ export default function MediaPage() {
         return `https://www.youtube.com/embed${u.pathname}`
       }
     } catch {
-      // not a valid URL
+      // URL invalide
     }
     return url
   }
@@ -119,135 +116,204 @@ export default function MediaPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#4E6939]" />
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#4E6939' }} />
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl p-3 text-sm" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
+          {error}
+        </div>
       )}
 
-      {/* Photos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-[#4E6939]" />
-            Photos
-          </CardTitle>
-          <CardDescription>Add photo URLs to showcase your restaurant</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              placeholder="https://example.com/photo.jpg"
-              className="flex-1"
-            />
-            <Button onClick={handleAddPhoto} loading={addingPhoto} disabled={!photoUrl.trim()}>
-              <Plus className="h-4 w-4" /> Add
-            </Button>
+      {/* Photos section */}
+      <div className="rounded-xl bg-white p-6" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+        {/* Section header */}
+        <div className="flex items-center gap-2 mb-5">
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-lg"
+            style={{ background: 'rgba(200,232,106,0.2)' }}
+          >
+            <ImageIcon className="h-4 w-4" style={{ color: '#4E6939' }} />
           </div>
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>Photos</h2>
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>
+              Ajoutez des URLs de photos pour mettre en valeur votre restaurant
+            </p>
+          </div>
+        </div>
 
-          {photos.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {photos.map((photo) => (
-                <div key={photo.id} className="group relative rounded-lg overflow-hidden border border-gray-200">
-                  <img
-                    src={photo.imageUrl}
-                    alt={photo.name}
-                    className="h-48 w-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f3f4f6" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" fill="%239ca3af" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'
-                    }}
+        {/* Add photo input */}
+        <div className="flex gap-2 mb-5">
+          <input
+            type="url"
+            value={photoUrl}
+            onChange={(e) => setPhotoUrl(e.target.value)}
+            placeholder="https://exemple.com/photo.jpg"
+            className="flex-1 rounded-lg px-3 py-2.5 text-sm outline-none transition"
+            style={{
+              border: '1px solid #E5E0D8',
+              background: '#FAFAF9',
+              color: '#111827',
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = '#4E6939')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = '#E5E0D8')}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddPhoto() } }}
+          />
+          <button
+            onClick={handleAddPhoto}
+            disabled={addingPhoto || !photoUrl.trim()}
+            className="flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
+            style={{ background: '#2D3B1F', color: '#C8E86A' }}
+          >
+            {addingPhoto
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Plus className="h-4 w-4" />
+            }
+            Ajouter
+          </button>
+        </div>
+
+        {/* Photo grid */}
+        {photos.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {photos.map((photo) => (
+              <div
+                key={photo.id}
+                className="group relative rounded-xl overflow-hidden"
+                style={{ border: '1px solid #E5E0D8' }}
+              >
+                <img
+                  src={photo.imageUrl}
+                  alt={photo.name}
+                  className="h-48 w-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(0,0,0,0.35)' }}>
+                  <button
+                    onClick={() => setDeleteTarget({ id: photo.id, name: photo.name })}
+                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium"
+                    style={{ background: '#FEF2F2', color: '#EF4444' }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer
+                  </button>
+                </div>
+                <div className="px-3 py-2" style={{ background: '#FAFAF9', borderTop: '1px solid #E5E0D8' }}>
+                  <p className="text-xs truncate" style={{ color: '#9CA3AF' }}>{photo.imageUrl}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="py-10 text-center text-sm" style={{ color: '#9CA3AF' }}>
+            Aucune photo ajoutée pour l'instant.
+          </p>
+        )}
+      </div>
+
+      {/* Videos section */}
+      <div className="rounded-xl bg-white p-6" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+        {/* Section header */}
+        <div className="flex items-center gap-2 mb-5">
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-lg"
+            style={{ background: 'rgba(200,232,106,0.2)' }}
+          >
+            <Film className="h-4 w-4" style={{ color: '#4E6939' }} />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>Vidéos</h2>
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>
+              Ajoutez des URLs YouTube ou vidéo pour votre restaurant
+            </p>
+          </div>
+        </div>
+
+        {/* Add video input */}
+        <div className="flex gap-2 mb-5">
+          <input
+            type="url"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder="https://youtube.com/watch?v=..."
+            className="flex-1 rounded-lg px-3 py-2.5 text-sm outline-none transition"
+            style={{
+              border: '1px solid #E5E0D8',
+              background: '#FAFAF9',
+              color: '#111827',
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = '#4E6939')}
+            onBlur={(e) => (e.currentTarget.style.borderColor = '#E5E0D8')}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddVideo() } }}
+          />
+          <button
+            onClick={handleAddVideo}
+            disabled={addingVideo || !videoUrl.trim()}
+            className="flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
+            style={{ background: '#2D3B1F', color: '#C8E86A' }}
+          >
+            {addingVideo
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Plus className="h-4 w-4" />
+            }
+            Ajouter
+          </button>
+        </div>
+
+        {/* Video grid */}
+        {videos.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {videos.map((video) => (
+              <div key={video.id} className="space-y-2">
+                <div
+                  className="relative rounded-xl overflow-hidden"
+                  style={{ border: '1px solid #E5E0D8' }}
+                >
+                  <iframe
+                    src={getYouTubeEmbedUrl(video.imageUrl ?? '') ?? ''}
+                    title={video.name}
+                    className="w-full aspect-video"
+                    allowFullScreen
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteTarget({ id: photo.id, name: photo.name })}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="p-2">
-                    <p className="text-xs text-gray-500 truncate">{photo.imageUrl}</p>
-                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-gray-400 py-8">No photos added yet</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Videos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Film className="h-5 w-5 text-[#4E6939]" />
-            Videos
-          </CardTitle>
-          <CardDescription>Add YouTube or video URLs for your restaurant</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://youtube.com/watch?v=..."
-              className="flex-1"
-            />
-            <Button onClick={handleAddVideo} loading={addingVideo} disabled={!videoUrl.trim()}>
-              <Plus className="h-4 w-4" /> Add
-            </Button>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs truncate flex-1" style={{ color: '#9CA3AF' }}>
+                    {video.imageUrl}
+                  </p>
+                  <button
+                    onClick={() => setDeleteTarget({ id: video.id, name: video.name })}
+                    className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition"
+                    style={{ background: '#FEF2F2' }}
+                    aria-label="Supprimer la vidéo"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" style={{ color: '#EF4444' }} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-
-          {videos.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {videos.map((video) => (
-                <div key={video.id} className="space-y-2">
-                  <div className="relative rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-                    <iframe
-                      src={getYouTubeEmbedUrl(video.imageUrl ?? '') ?? ''}
-                      title={video.name}
-                      className="w-full aspect-video"
-                      allowFullScreen
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-500 truncate flex-1">{video.imageUrl}</p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeleteTarget({ id: video.id, name: video.name })}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-sm text-gray-400 py-8">No videos added yet</p>
-          )}
-        </CardContent>
-      </Card>
+        ) : (
+          <p className="py-10 text-center text-sm" style={{ color: '#9CA3AF' }}>
+            Aucune vidéo ajoutée pour l'instant.
+          </p>
+        )}
+      </div>
 
       <ConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-        title="Remove Media"
-        description={`Remove "${deleteTarget?.name}"? This cannot be undone.`}
-        confirmLabel="Remove"
+        title="Supprimer le média"
+        description={`Supprimer "${deleteTarget?.name}" ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
         loading={deleteLoading}
       />
     </div>

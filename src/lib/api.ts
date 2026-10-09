@@ -192,6 +192,12 @@ export async function getRestaurants(
   return data.data
 }
 
+export async function getMyRestaurant(): Promise<Restaurant> {
+  const response = await fetchWithAuth(`${BASE_URL}/restaurants/mine`)
+  const data = await handleResponse<RestaurantResponse>(response)
+  return data.data
+}
+
 export async function getRestaurant(id: string): Promise<Restaurant> {
   const response = await fetchWithAuth(`${BASE_URL}/restaurants/${id}`)
   const data = await handleResponse<RestaurantResponse>(response)

@@ -5,7 +5,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.98 0.01 130);
+  --background: #F2EDE4;
   --foreground: oklch(0.18 0.04 130);
   --primary: #4E6939;
   --primary-light: #6B8C4A;
