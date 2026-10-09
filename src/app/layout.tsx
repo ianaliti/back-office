@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from '@/components/Providers'
 
 export const metadata: Metadata = {
   title: 'Yummy Back Office',
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <body className="h-full antialiased">{children}</body>
+      <body className="h-full antialiased">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }

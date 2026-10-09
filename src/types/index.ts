@@ -48,6 +48,11 @@ export interface OpeningHours {
   sunday?: string
 }
 
+export interface DietTag {
+  code: string
+  label: string
+}
+
 export interface Restaurant {
   id: string
   name: string
@@ -60,6 +65,8 @@ export interface Restaurant {
   cuisine?: string
   openingHours?: OpeningHours | string
   ownerId?: string
+  diets?: DietTag[]
+  accessibility?: DietTag[]
   createdAt?: string
   updatedAt?: string
 }
@@ -82,7 +89,8 @@ export interface AdminStats {
   data: {
     users: number
     restaurants: number
-    events: number
+    orders: number
+    reviews: number
   }
 }
 
@@ -126,3 +134,35 @@ export interface DishResponse {
 export type DishFormData = Omit<Dish, 'id' | 'restaurantId' | 'createdAt' | 'updatedAt'>
 
 export type RestaurantFormData = Omit<Restaurant, 'id' | 'createdAt' | 'updatedAt'>
+
+export interface Review {
+  id: string
+  authorName: string
+  rating: number
+  comment: string | null
+  createdAt: string
+  dietTags?: string[]
+}
+
+export interface RatingApiResponse {
+  id: string
+  restaurantId: string
+  userId: string
+  authorName: string
+  score: number
+  comment: string | null
+  createdAt: string
+}
+
+export interface FilterAnalytic {
+  code: string
+  label: string
+  clicks: number
+  type: 'diet' | 'accessibility' | 'search' | 'cuisine'
+}
+
+export interface RestaurantAnalytics {
+  totalProfileViews: number
+  filterHits: FilterAnalytic[]
+  searchTerms: { term: string; count: number }[]
+}

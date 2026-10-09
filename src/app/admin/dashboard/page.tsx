@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { getAdminStats } from '@/lib/api'
 import { Card, CardContent } from '@/components/ui/Card'
-import { Users, UtensilsCrossed, CalendarDays, Loader2 } from 'lucide-react'
+import { Users, UtensilsCrossed, ShoppingBag, Star, Loader2 } from 'lucide-react'
 
 interface Stats {
   users: number
   restaurants: number
-  events: number
+  orders: number
+  reviews: number
 }
 
 export default function AdminDashboardPage() {
@@ -51,7 +52,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Stats cards */}
-      <div className="grid gap-6 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={Users}
           label="Total Users"
@@ -67,11 +68,18 @@ export default function AdminDashboardPage() {
           bg="bg-[#4E6939]/10"
         />
         <StatCard
-          icon={CalendarDays}
-          label="Events"
-          value={stats?.events ?? 0}
-          color="text-green-600"
-          bg="bg-green-50"
+          icon={ShoppingBag}
+          label="Orders"
+          value={stats?.orders ?? 0}
+          color="text-purple-600"
+          bg="bg-purple-50"
+        />
+        <StatCard
+          icon={Star}
+          label="Reviews"
+          value={stats?.reviews ?? 0}
+          color="text-amber-500"
+          bg="bg-amber-50"
         />
       </div>
     </div>

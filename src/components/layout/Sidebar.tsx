@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { clearAuth, getUser } from '@/lib/auth'
+import { clearAuth } from '@/lib/auth'
+import { useAuth } from '@/context/AuthContext'
 import * as api from '@/lib/api'
 import {
   LayoutDashboard,
@@ -49,7 +50,7 @@ export function Sidebar({ role }: SidebarProps) {
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
-  const user = getUser()
+  const { user } = useAuth()
   const navItems = role === 'ADMIN' ? adminNav : restaurantNav
 
   async function handleLogout() {

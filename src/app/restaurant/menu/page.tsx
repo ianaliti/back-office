@@ -29,7 +29,7 @@ export default function MenuPage() {
     async function load() {
       try {
         const user = (await import('@/lib/auth')).getUser()
-        const restaurants = await getRestaurants()
+        const { restaurants } = await getRestaurants()
         // Prefer an explicit ownerId match; fall back to first result only when
         // the backend already scopes the list to the authenticated owner.
         const mine =

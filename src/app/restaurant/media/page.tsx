@@ -26,7 +26,7 @@ export default function MediaPage() {
     async function load() {
       try {
         const user = (await import('@/lib/auth')).getUser()
-        const restaurants = await getRestaurants()
+        const { restaurants } = await getRestaurants()
         const mine = restaurants.find((r) => r.ownerId === user?.id) ?? restaurants[0] ?? null
         if (mine) {
           setRestaurantId(mine.id)

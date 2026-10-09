@@ -22,6 +22,9 @@ import type {
   PaginatedUsers,
   User,
   UserRole,
+  Review,
+  RatingApiResponse,
+  RestaurantAnalytics,
 } from '@/types'
 
 const BASE_URL = 'http://localhost:3000/api/v1'
@@ -173,10 +176,20 @@ export async function logout(): Promise<void> {
 }
 
 // Restaurants
-export async function getRestaurants(): Promise<Restaurant[]> {
-  const response = await fetchWithAuth(`${BASE_URL}/restaurants`)
+export async function getRestaurants(
+  page = 1,
+  limit = 20,
+  search = '',
+  city = '',
+  diets: string[] = [],
+): Promise<{ restaurants: Restaurant[]; total: number; pages: number; page: number }> {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (search.trim()) params.set('search', search.trim())
+  if (city.trim()) params.set('city', city.trim())
+  if (diets.length > 0) params.set('diets', diets.join(','))
+  const response = await fetchWithAuth(`${BASE_URL}/restaurants?${params}`)
   const data = await handleResponse<RestaurantsListResponse>(response)
-  return data.data.restaurants
+  return data.data
 }
 
 export async function getRestaurant(id: string): Promise<Restaurant> {
@@ -244,6 +257,51 @@ export async function deleteDish(restaurantId: string, dishId: string): Promise<
     const msg = (body as { error?: { message?: string } })?.error?.message || 'Failed to delete dish'
     throw new Error(msg)
   }
+}
+
+// Reviews
+export async function getRestaurantReviews(restaurantId: string): Promise<Review[]> {
+  const response = await fetchWithAuth(`${BASE_URL}/restaurants/${restaurantId}/ratings`)
+  const ratings = await handleResponse<RatingApiResponse[]>(response)
+  return ratings.map((r) => ({
+    id: r.id,
+    authorName: r.authorName,
+    rating: r.score,
+    comment: r.comment ?? '',
+    createdAt: r.createdAt,
+  }))
+}
+
+// Analytics
+export async function getRestaurantAnalytics(restaurantId: string): Promise<RestaurantAnalytics> {
+  const response = await fetchWithAuth(`${BASE_URL}/restaurants/${restaurantId}/analytics`)
+  return handleResponse<RestaurantAnalytics>(response)
+}
+
+export async function trackProfileView(restaurantId: string): Promise<void> {
+  await fetchWithAuth(`${BASE_URL}/analytics/profile-view`, {
+    method: 'POST',
+    body: JSON.stringify({ restaurantId }),
+  }).catch(() => {/* fire-and-forget, don't break the page if tracking fails */})
+}
+
+export async function trackFilterClick(
+  restaurantId: string,
+  filterCode: string,
+  filterType: 'diet' | 'accessibility' | 'cuisine' | 'search',
+  filterLabel: string
+): Promise<void> {
+  await fetchWithAuth(`${BASE_URL}/analytics/filter-click`, {
+    method: 'POST',
+    body: JSON.stringify({ restaurantId, filterCode, filterType, filterLabel }),
+  }).catch(() => {})
+}
+
+export async function trackSearch(term: string, restaurantId?: string): Promise<void> {
+  await fetchWithAuth(`${BASE_URL}/analytics/search`, {
+    method: 'POST',
+    body: JSON.stringify({ term, restaurantId }),
+  }).catch(() => {})
 }
 
 // Admin
