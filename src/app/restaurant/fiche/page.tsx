@@ -1,100 +1,218 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getMyRestaurant, getDishes } from '@/lib/api'
-import { Loader2, Plus, Upload, ImageOff, Share2, Eye } from 'lucide-react'
-import type { Dish, Restaurant } from '@/types'
+import { getMyRestaurant, updateRestaurant } from '@/lib/api'
+import {
+  Loader2, ExternalLink, Upload, Plus, Star, ChevronRight,
+  MapPin, Phone, Clock, Camera, Info,
+} from 'lucide-react'
+import type { Restaurant } from '@/types'
 
-const ALLERGEN_EMOJI: Record<string, string> = {
-  gluten: '🌾', lactose: '🥛', oeufs: '🥚', poisson: '🐟',
-  arachides: '🥜', soja: '🫘', fruits_coque: '🌰', celeri: '🌿',
-  moutarde: '🌻', sesame: '🌱', sulfites: '🍷', lupin: '🫛',
-  crustaces: '🦐', mollusques: '🦪',
-}
-
-const ALLERGEN_COLORS: Record<string, { bg: string; text: string }> = {
-  gluten:       { bg: '#FEF3C7', text: '#92400E' },
-  lactose:      { bg: '#DBEAFE', text: '#1E40AF' },
-  arachides:    { bg: '#FEE2E2', text: '#991B1B' },
-  oeufs:        { bg: '#FEF9C3', text: '#854D0E' },
-  poisson:      { bg: '#CFFAFE', text: '#155E75' },
-  soja:         { bg: '#F3E8FF', text: '#6B21A8' },
-  fruits_coque: { bg: '#FCE7F3', text: '#9D174D' },
-  crustaces:    { bg: '#FED7AA', text: '#9A3412' },
-  celeri:       { bg: '#D1FAE5', text: '#065F46' },
-  moutarde:     { bg: '#FEF3C7', text: '#713F12' },
-  sesame:       { bg: '#E0F2FE', text: '#075985' },
-  sulfites:     { bg: '#EDE9FE', text: '#5B21B6' },
-  lupin:        { bg: '#FCE7F3', text: '#831843' },
-  mollusques:   { bg: '#ECFDF5', text: '#047857' },
-}
-
-const DIET_COLORS: Record<string, { bg: string; text: string }> = {
-  vegan:        { bg: '#D1FAE5', text: '#065F46' },
-  vegetarian:   { bg: '#DCFCE7', text: '#166534' },
-  halal:        { bg: '#FEF3C7', text: '#92400E' },
-  kosher:       { bg: '#DBEAFE', text: '#1E40AF' },
-  gluten_free:  { bg: '#FEE2E2', text: '#991B1B' },
-  lactose_free: { bg: '#F3E8FF', text: '#6B21A8' },
-}
-
-const ALL_ALLERGENS = [
-  'gluten', 'crustaces', 'oeufs', 'poisson', 'arachides',
-  'soja', 'lactose', 'fruits_coque', 'celeri', 'moutarde',
-  'sesame', 'sulfites', 'lupin', 'mollusques',
+const DAYS = [
+  { key: 'monday', label: 'Lundi' },
+  { key: 'tuesday', label: 'Mardi' },
+  { key: 'wednesday', label: 'Mercredi' },
+  { key: 'thursday', label: 'Jeudi' },
+  { key: 'friday', label: 'Vendredi' },
+  { key: 'saturday', label: 'Samedi' },
+  { key: 'sunday', label: 'Dimanche' },
 ]
 
-const ALL_DIETS = [
-  { key: 'vegan', label: 'Vegan' },
-  { key: 'vegetarian', label: 'Végétarien' },
-  { key: 'gluten_free', label: 'Sans gluten' },
-  { key: 'lactose_free', label: 'Sans lactose' },
-  { key: 'halal', label: 'Halal' },
-  { key: 'kosher', label: 'Kosher' },
+const ACCESSIBILITY_OPTIONS = [
+  { key: 'pmr', label: 'Accès PMR' },
+  { key: 'toilettes', label: 'Toilettes adaptées' },
+  { key: 'cafe', label: 'Café' },
+  { key: 'braille', label: 'Menu en braille' },
+  { key: 'chaise_haute', label: 'Chaise haute' },
 ]
 
-type TabKey = 'ALL' | 'Entrées' | 'Plats' | 'Desserts' | 'Boissons' | 'VERIFY'
+const PRICE_RANGES = ['< 12 €', '12 à 20 €', '20 à 35 €', '> 35 €']
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'ALL', label: 'Tous' },
-  { key: 'Entrées', label: 'Entrées' },
-  { key: 'Plats', label: 'Plats' },
-  { key: 'Desserts', label: 'Desserts' },
-  { key: 'Boissons', label: 'Boissons' },
-  { key: 'VERIFY', label: 'À vérifier' },
+const PLACEHOLDER_PHOTOS = [
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80',
+  'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=400&q=80',
 ]
 
-export default function FichePage() {
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button
+      onClick={onChange}
+      className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors"
+      style={{ background: checked ? '#4E6939' : '#D1D5DB' }}
+      role="switch"
+      aria-checked={checked}
+    >
+      <span
+        className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform"
+        style={{ transform: checked ? 'translateX(18px)' : 'translateX(2px)' }}
+      />
+    </button>
+  )
+}
+
+function MobilePreview({ restaurant }: { restaurant: Restaurant }) {
+  return (
+    <div
+      className="relative mx-auto rounded-[2rem] overflow-hidden"
+      style={{
+        width: 220,
+        height: 440,
+        background: '#fff',
+        boxShadow: '0 0 0 8px #1A2E0A, 0 20px 48px rgba(0,0,0,0.25)',
+      }}
+    >
+      {/* Status bar */}
+      <div className="flex items-center justify-between px-4 pt-2 pb-1" style={{ background: '#2D3B1F' }}>
+        <span className="text-[9px] font-semibold text-white">9:41</span>
+        <div className="flex items-center gap-1">
+          <div className="h-1.5 w-1.5 rounded-full bg-white opacity-80" />
+          <div className="h-1.5 w-1.5 rounded-full bg-white opacity-80" />
+          <div className="h-1.5 w-1.5 rounded-full bg-white" />
+        </div>
+      </div>
+
+      {/* Hero image */}
+      <div className="relative" style={{ height: 110 }}>
+        <img
+          src={PLACEHOLDER_PHOTOS[0]}
+          alt="cover"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.5), transparent)' }} />
+        <div className="absolute bottom-2 right-2">
+          <span
+            className="rounded-full px-2 py-0.5 text-[8px] font-semibold text-white"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+          >
+            Voir les 3 photos
+          </span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="px-3 py-2 space-y-2 overflow-hidden" style={{ height: 290 }}>
+        <div>
+          <h3 className="text-[11px] font-bold" style={{ color: '#111827' }}>
+            {restaurant.name}
+          </h3>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Star className="h-2.5 w-2.5" style={{ color: '#F59E0B', fill: '#F59E0B' }} />
+            <span className="text-[9px] font-semibold" style={{ color: '#111827' }}>4,5</span>
+            <span className="text-[9px]" style={{ color: '#9CA3AF' }}>· 20 avis</span>
+          </div>
+          <p className="text-[9px] mt-0.5" style={{ color: '#6B7280' }}>
+            {(restaurant as any).cuisine ?? 'Food truck végétal'}
+          </p>
+        </div>
+
+        {/* Compatible badge */}
+        <div
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5"
+          style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}
+        >
+          <div
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold"
+            style={{ background: '#22C55E', color: 'white' }}
+          >
+            ✓
+          </div>
+          <div>
+            <p className="text-[8px] font-semibold" style={{ color: '#15803D' }}>Compatible avec</p>
+            <p className="text-[8px]" style={{ color: '#166534' }}>vos préférences à 100%</p>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-1">
+          {['Vegan', 'Végétarien', 'Halal'].map(tag => (
+            <span
+              key={tag}
+              className="rounded-full px-1.5 py-0.5 text-[7px] font-medium"
+              style={{ background: '#D1FAE5', color: '#065F46' }}
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        {/* Info rows */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-2.5 w-2.5 shrink-0" style={{ color: '#9CA3AF' }} />
+            <span className="text-[8px] truncate" style={{ color: '#6B7280' }}>
+              {restaurant.address ?? '3 av. du Parmentier, Annecy'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-2.5 w-2.5 shrink-0" style={{ color: '#4E6939' }} />
+            <span className="text-[8px]" style={{ color: '#4E6939', fontWeight: 600 }}>
+              Ouvert · ferme à 21h00
+            </span>
+          </div>
+        </div>
+
+        {/* Reserve button */}
+        <button
+          className="w-full rounded-xl py-2 text-[9px] font-bold"
+          style={{ background: '#2D3B1F', color: '#C8E86A' }}
+        >
+          Réserver une table
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export default function FichePubliquePage() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
-  const [dishes, setDishes] = useState<Dish[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<TabKey>('ALL')
-  const [search, setSearch] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
-  const [localAllergens, setLocalAllergens] = useState<Record<string, string[]>>({})
-  const [localDiets, setLocalDiets] = useState<Record<string, string[]>>({})
-  const [openPicker, setOpenPicker] = useState<{ id: string; type: 'allergens' | 'diets' } | null>(null)
+  // Form state
+  const [name, setName] = useState('')
+  const [cuisine, setCuisine] = useState('')
+  const [priceRange, setPriceRange] = useState('12 à 20 €')
+  const [description, setDescription] = useState('')
+  const [address, setAddress] = useState('')
+  const [phone, setPhone] = useState('')
+  const [accessibility, setAccessibility] = useState<Record<string, boolean>>({})
+  const [hours, setHours] = useState<Record<string, { open: string; close: string; open2?: string; close2?: string; closed: boolean }>>({})
 
   useEffect(() => {
     async function load() {
       try {
-        const mine = await getMyRestaurant()
-        setRestaurant(mine)
-        if (mine) {
-          const list = await getDishes(mine.id)
-          setDishes(list)
-          const allergenMap: Record<string, string[]> = {}
-          const dietMap: Record<string, string[]> = {}
-          list.forEach(d => {
-            allergenMap[d.id] = (d as any).allergens ?? []
-            dietMap[d.id] = (d as any).diets ?? []
-          })
-          setLocalAllergens(allergenMap)
-          setLocalDiets(dietMap)
-        }
+        const r = await getMyRestaurant()
+        setRestaurant(r)
+        setName(r.name ?? '')
+        setCuisine((r as any).cuisine ?? '')
+        setPriceRange((r as any).priceRange ?? '12 à 20 €')
+        setDescription(r.description ?? '')
+        setAddress(r.address ?? '')
+        setPhone(r.phone ?? '')
+
+        // Accessibility
+        const acc: Record<string, boolean> = {}
+        ACCESSIBILITY_OPTIONS.forEach(o => {
+          acc[o.key] = (r.accessibility ?? []).some((a: any) => a.code === o.key)
+        })
+        setAccessibility(acc)
+
+        // Opening hours
+        const oh = typeof r.openingHours === 'string'
+          ? JSON.parse(r.openingHours)
+          : (r.openingHours ?? {})
+        const defaultHours: Record<string, any> = {}
+        DAYS.forEach(d => {
+          const raw = oh[d.key]
+          defaultHours[d.key] = raw
+            ? { ...raw }
+            : { open: '09:30', close: '14:30', open2: '19:30', close2: '21:00', closed: false }
+        })
+        defaultHours['monday'] = { ...defaultHours['monday'], closed: true }
+        setHours(defaultHours)
       } catch {
-        setError('Impossible de charger la fiche publique. Veuillez réessayer.')
+        // ignore
       } finally {
         setLoading(false)
       }
@@ -102,15 +220,26 @@ export default function FichePage() {
     load()
   }, [])
 
-  useEffect(() => {
-    if (!openPicker) return
-    function handleClick(e: MouseEvent) {
-      const target = e.target as HTMLElement
-      if (!target.closest('[data-picker]')) setOpenPicker(null)
+  async function handleSave() {
+    if (!restaurant) return
+    setSaving(true)
+    try {
+      await updateRestaurant(restaurant.id, {
+        name,
+        description,
+        address,
+        phone,
+        cuisine,
+      } as any)
+      setRestaurant(prev => prev ? { ...prev, name, description, address, phone } : prev)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch {
+      // silently ignore
+    } finally {
+      setSaving(false)
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [openPicker])
+  }
 
   if (loading) {
     return (
@@ -122,416 +251,347 @@ export default function FichePage() {
 
   if (!restaurant) {
     return (
-      <div
-        className="rounded-xl px-4 py-3 text-sm"
-        style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E' }}
-      >
+      <div className="rounded-xl px-4 py-3 text-sm" style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E' }}>
         Aucun restaurant trouvé pour votre compte.
       </div>
     )
   }
 
-  function getDishAllergens(dishId: string): string[] {
-    return localAllergens[dishId] ?? []
-  }
-  function getDishDiets(dishId: string): string[] {
-    return localDiets[dishId] ?? []
-  }
-  function toggleAllergen(dishId: string, allergen: string) {
-    setLocalAllergens(prev => {
-      const current = prev[dishId] ?? []
-      const next = current.includes(allergen)
-        ? current.filter(a => a !== allergen)
-        : [...current, allergen]
-      return { ...prev, [dishId]: next }
-    })
-  }
-  function toggleDiet(dishId: string, diet: string) {
-    setLocalDiets(prev => {
-      const current = prev[dishId] ?? []
-      const next = current.includes(diet)
-        ? current.filter(d => d !== diet)
-        : [...current, diet]
-      return { ...prev, [dishId]: next }
-    })
-  }
-
-  const tabCount = (key: TabKey) => {
-    if (key === 'ALL') return dishes.length
-    if (key === 'VERIFY') return dishes.filter(d => !getDishAllergens(d.id).length).length
-    return dishes.filter(d => (d.category ?? '') === key).length
-  }
-
-  const filtered = dishes.filter(d => {
-    const matchSearch = d.name.toLowerCase().includes(search.toLowerCase()) ||
-      (d.category ?? '').toLowerCase().includes(search.toLowerCase())
-    const matchTab =
-      activeTab === 'ALL' ? true :
-      activeTab === 'VERIFY' ? !getDishAllergens(d.id).length :
-      (d.category ?? '') === activeTab
-    return matchSearch && matchTab
-  })
-
   return (
     <div className="space-y-5">
-      {error && (
-        <div className="rounded-xl p-4 text-sm" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
-          {error}
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold" style={{ color: '#111827' }}>Fiche publique</h1>
+          <p className="text-sm mt-0.5" style={{ color: '#6B7280' }}>
+            Ce que voient les clients dans l'app Yum'me
+          </p>
         </div>
-      )}
-
-      {/* Page header card */}
-      <div className="rounded-xl bg-white p-6" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
-        <div className="flex items-start justify-between">
-          <div>
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium mb-3"
-              style={{ background: 'rgba(200,232,106,0.2)', color: '#2D3B1F' }}
-            >
-              <Eye className="h-3 w-3" /> Aperçu public
-            </span>
-            <h2 className="text-xl font-bold" style={{ color: '#111827' }}>
-              {restaurant.name ?? '—'}
-            </h2>
-            <p className="mt-1 text-sm" style={{ color: '#6B7280' }}>
-              {(restaurant as any).cuisine && `${(restaurant as any).cuisine} · `}{restaurant.address}
-            </p>
-            {restaurant.description && (
-              <p className="mt-2 text-sm max-w-lg" style={{ color: '#9CA3AF' }}>
-                {restaurant.description}
-              </p>
-            )}
-          </div>
+        <div className="flex items-center gap-2.5">
           <button
-            className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold"
+            className="flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-opacity"
+            style={{ border: '1px solid #E5E0D8', background: 'white', color: '#374151' }}
+          >
+            <ExternalLink className="h-4 w-4" />
+            Voir dans l'app
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-opacity disabled:opacity-60"
             style={{ background: '#2D3B1F', color: '#C8E86A' }}
           >
-            <Share2 className="h-4 w-4" />
-            Partager la fiche
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {saved ? 'Enregistré !' : 'Publier les modifications'}
           </button>
         </div>
       </div>
 
-      {/* Alert banner */}
-      <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm"
-        style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-        <span style={{ color: '#D97706' }}>⚠</span>
-        <p style={{ color: '#92400E' }}>
-          <span className="font-semibold">1 avis actif :</span>{' '}
-          <span className="font-medium">Burger Avocat</span> — un client a signalé un allergène non déclaré sur ce plat.{' '}
-          <span className="font-semibold" style={{ color: '#D97706' }}>(EN COURS)</span>
-        </p>
-      </div>
+      {/* Two-column layout */}
+      <div className="flex gap-6 items-start">
+        {/* Left column */}
+        <div className="flex-1 min-w-0 space-y-5">
 
-      {/* Top bar */}
-      <div className="flex items-center gap-3">
-        <div
-          className="flex shrink-0 items-center gap-0.5 rounded-xl bg-white p-1"
-          style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
-        >
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.key
-            const count = tabCount(tab.key)
-            return (
+          {/* Photos */}
+          <div className="rounded-xl bg-white p-6" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold" style={{ color: '#111827' }}>
+                Photos ({PLACEHOLDER_PHOTOS.length})
+              </h2>
+              <button className="text-xs font-medium" style={{ color: '#4E6939' }}>
+                Gérer vos photos
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {PLACEHOLDER_PHOTOS.map((src, i) => (
+                <div key={i} className="relative rounded-lg overflow-hidden" style={{ aspectRatio: '4/3' }}>
+                  <img src={src} alt={`photo ${i + 1}`} className="w-full h-full object-cover" />
+                  <div
+                    className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.35)' }}
+                  >
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              ))}
               <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
+                className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed text-xs font-medium transition-colors"
                 style={{
-                  background: isActive ? '#2D3B1F' : 'transparent',
-                  color: isActive ? '#C8E86A' : '#6B7280',
+                  aspectRatio: '4/3',
+                  borderColor: '#D1D5DB',
+                  color: '#9CA3AF',
+                  background: '#FAFAFA',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = '#4E6939'
+                  e.currentTarget.style.color = '#4E6939'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = '#D1D5DB'
+                  e.currentTarget.style.color = '#9CA3AF'
                 }}
               >
-                {tab.label}
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                  style={{
-                    background: isActive ? 'rgba(200,232,106,0.2)' : '#F3F4F6',
-                    color: isActive ? '#C8E86A' : '#9CA3AF',
-                  }}
-                >
-                  {count}
-                </span>
+                <Plus className="h-5 w-5" />
+                Ajouter des photos
               </button>
-            )
-          })}
-        </div>
+            </div>
 
-        <div className="flex-1" />
-
-        <button
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity"
-          style={{ border: '1px solid #E5E0D8', background: 'white', color: '#4E6939' }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <Upload className="h-4 w-4" />
-          Importer la carte
-        </button>
-        <button
-          className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-opacity"
-          style={{ background: '#2D3B1F', color: '#C8E86A' }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <Plus className="h-4 w-4" />
-          Ajouter un plat
-        </button>
-      </div>
-
-      {/* Table card */}
-      <div
-        className="rounded-xl bg-white overflow-hidden"
-        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
-      >
-        {filtered.length === 0 ? (
-          <div className="py-16 text-center text-sm" style={{ color: '#9CA3AF' }}>
-            Aucun plat trouvé.
+            {/* Info banner */}
+            <div
+              className="mt-4 flex items-start gap-2.5 rounded-xl px-3.5 py-3 text-xs"
+              style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+            >
+              <Info className="h-4 w-4 shrink-0 mt-0.5" style={{ color: '#D97706' }} />
+              <p style={{ color: '#92400E' }}>
+                Les fiches avec au moins 4 photos reçoivent <strong>3x plus de réservations</strong>. Les photos de couverture sont prioritaires dans l'app.
+              </p>
+            </div>
           </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid #F2EDE4' }}>
-                <th className="px-5 py-3 text-left text-xs font-medium tracking-wide" style={{ color: '#6B7280' }}>PLAT</th>
-                <th className="px-5 py-3 text-left text-xs font-medium tracking-wide" style={{ color: '#6B7280' }}>CATÉGORIE</th>
-                <th className="px-5 py-3 text-left text-xs font-medium tracking-wide" style={{ color: '#6B7280' }}>RÉGIMES</th>
-                <th className="px-5 py-3 text-left text-xs font-medium tracking-wide" style={{ color: '#6B7280' }}>ALLERGÈNES DÉCLARÉS</th>
-                <th className="px-5 py-3 text-left text-xs font-medium tracking-wide" style={{ color: '#6B7280' }}>STATUT</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((dish, i) => {
-                const allergens = getDishAllergens(dish.id)
-                const diets = getDishDiets(dish.id)
-                const hasAllergens = allergens.length > 0
 
-                return (
-                  <tr
-                    key={dish.id}
-                    style={{ borderBottom: i < filtered.length - 1 ? '1px solid #F9F7F4' : 'none' }}
+          {/* Informations */}
+          <div className="rounded-xl bg-white p-6" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+            <h2 className="text-sm font-semibold mb-5" style={{ color: '#111827' }}>
+              Informations
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: '#6B7280' }}>
+                  Nom de l'établissement
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
+                  style={{ borderColor: '#E5E0D8', color: '#111827' }}
+                  onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
+                  onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#6B7280' }}>
+                    Type de cuisine
+                  </label>
+                  <input
+                    type="text"
+                    value={cuisine}
+                    onChange={e => setCuisine(e.target.value)}
+                    placeholder="Ex: Food truck végétal"
+                    className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors"
+                    style={{ borderColor: '#E5E0D8', color: '#111827' }}
+                    onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
+                    onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#6B7280' }}>
+                    Gamme de prix
+                  </label>
+                  <select
+                    value={priceRange}
+                    onChange={e => setPriceRange(e.target.value)}
+                    className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors appearance-none bg-white"
+                    style={{ borderColor: '#E5E0D8', color: '#111827' }}
+                    onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
+                    onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
                   >
-                    {/* PLAT */}
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        {dish.imageUrl ? (
-                          <img
-                            src={dish.imageUrl}
-                            alt={dish.name}
-                            className="h-10 w-10 rounded-lg object-cover shrink-0"
-                          />
-                        ) : (
-                          <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                            style={{ background: '#F2EDE4' }}
-                          >
-                            <ImageOff className="h-4 w-4" style={{ color: '#9CA3AF' }} />
-                          </div>
+                    {PRICE_RANGES.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: '#6B7280' }}>
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Décrivez votre restaurant…"
+                  className="w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none transition-colors resize-none"
+                  style={{ borderColor: '#E5E0D8', color: '#111827' }}
+                  onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
+                  onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#6B7280' }}>
+                    Adresse
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#9CA3AF' }} />
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={e => setAddress(e.target.value)}
+                      className="w-full rounded-xl border pl-9 pr-3.5 py-2.5 text-sm outline-none transition-colors"
+                      style={{ borderColor: '#E5E0D8', color: '#111827' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: '#6B7280' }}>
+                    Téléphone
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: '#9CA3AF' }} />
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      placeholder="04 50 12 34 56"
+                      className="w-full rounded-xl border pl-9 pr-3.5 py-2.5 text-sm outline-none transition-colors"
+                      style={{ borderColor: '#E5E0D8', color: '#111827' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Horaires d'ouverture */}
+          <div className="rounded-xl bg-white p-6" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: '#111827' }}>
+                <Clock className="h-4 w-4 shrink-0" style={{ color: '#4E6939' }} />
+                Horaires d'ouverture
+              </h2>
+              <button className="text-xs font-medium" style={{ color: '#4E6939' }}>
+                Appliquer à plusieurs jours
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {DAYS.map(day => {
+                const h = hours[day.key] ?? { open: '09:30', close: '14:30', open2: '19:30', close2: '21:00', closed: false }
+                return (
+                  <div key={day.key} className="flex items-center gap-4">
+                    <span
+                      className="w-24 shrink-0 text-sm font-medium"
+                      style={{ color: h.closed ? '#9CA3AF' : '#374151' }}
+                    >
+                      {day.label}
+                    </span>
+
+                    {h.closed ? (
+                      <span className="flex-1 text-sm" style={{ color: '#9CA3AF' }}>Fermé</span>
+                    ) : (
+                      <div className="flex flex-1 items-center gap-2 text-sm" style={{ color: '#374151' }}>
+                        <TimeInput
+                          value={h.open}
+                          onChange={v => setHours(p => ({ ...p, [day.key]: { ...p[day.key], open: v } }))}
+                        />
+                        <span style={{ color: '#9CA3AF' }}>–</span>
+                        <TimeInput
+                          value={h.close}
+                          onChange={v => setHours(p => ({ ...p, [day.key]: { ...p[day.key], close: v } }))}
+                        />
+                        {h.open2 && (
+                          <>
+                            <span className="mx-1" style={{ color: '#D1D5DB' }}>·</span>
+                            <TimeInput
+                              value={h.open2 ?? ''}
+                              onChange={v => setHours(p => ({ ...p, [day.key]: { ...p[day.key], open2: v } }))}
+                            />
+                            <span style={{ color: '#9CA3AF' }}>–</span>
+                            <TimeInput
+                              value={h.close2 ?? ''}
+                              onChange={v => setHours(p => ({ ...p, [day.key]: { ...p[day.key], close2: v } }))}
+                            />
+                          </>
                         )}
-                        <div>
-                          <p className="text-sm font-medium" style={{ color: '#111827' }}>{dish.name}</p>
-                          {dish.price != null && (
-                            <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                              {typeof dish.price === 'number'
-                                ? `${dish.price.toFixed(2)} €`
-                                : `${dish.price} €`}
-                            </p>
-                          )}
-                        </div>
+                        <button
+                          className="ml-1 text-xs"
+                          style={{ color: '#9CA3AF' }}
+                          title="Ajouter une plage"
+                          onClick={() => setHours(p => ({
+                            ...p,
+                            [day.key]: p[day.key].open2
+                              ? { ...p[day.key], open2: undefined, close2: undefined }
+                              : { ...p[day.key], open2: '19:30', close2: '21:00' }
+                          }))}
+                        >
+                          {h.open2 ? '−' : '+'}
+                        </button>
                       </div>
-                    </td>
+                    )}
 
-                    {/* CATÉGORIE */}
-                    <td className="px-5 py-3">
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                        style={{ background: 'rgba(200,232,106,0.2)', color: '#2D3B1F' }}
-                      >
-                        {dish.category ?? '—'}
-                      </span>
-                    </td>
-
-                    {/* RÉGIMES */}
-                    <td className="px-5 py-3">
-                      <div className="relative" data-picker>
-                        <div className="flex flex-wrap items-center gap-1">
-                          {diets.map((diet) => {
-                            const s = DIET_COLORS[diet.toLowerCase()] ?? { bg: '#F3F4F6', text: '#374151' }
-                            return (
-                              <button
-                                key={diet}
-                                onClick={() => toggleDiet(dish.id, diet)}
-                                className="rounded-full px-2 py-0.5 text-[10px] font-medium capitalize transition-opacity"
-                                style={{ background: s.bg, color: s.text }}
-                                title="Cliquer pour retirer"
-                              >
-                                {diet.replace(/_/g, ' ')} ×
-                              </button>
-                            )
-                          })}
-                          <button
-                            onClick={() => setOpenPicker(
-                              openPicker?.id === dish.id && openPicker.type === 'diets'
-                                ? null
-                                : { id: dish.id, type: 'diets' }
-                            )}
-                            className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold transition-colors"
-                            style={{ background: '#F2EDE4', color: '#9CA3AF' }}
-                            title="Ajouter un régime"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        {openPicker?.id === dish.id && openPicker.type === 'diets' && (
-                          <div
-                            className="absolute left-0 top-full z-50 mt-1 rounded-xl bg-white p-3 shadow-lg"
-                            style={{ minWidth: 200, border: '1px solid #E5E0D8' }}
-                          >
-                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>
-                              Régimes compatibles
-                            </p>
-                            <div className="space-y-1">
-                              {ALL_DIETS.map(({ key, label }) => {
-                                const selected = diets.includes(key)
-                                const s = DIET_COLORS[key] ?? { bg: '#F3F4F6', text: '#374151' }
-                                return (
-                                  <button
-                                    key={key}
-                                    onClick={() => toggleDiet(dish.id, key)}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs transition-colors text-left"
-                                    style={{ background: selected ? s.bg : 'transparent' }}
-                                  >
-                                    <span
-                                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]"
-                                      style={{
-                                        background: selected ? s.bg : 'white',
-                                        border: `1px solid ${selected ? s.text : '#D1D5DB'}`,
-                                        color: s.text,
-                                      }}
-                                    >
-                                      {selected ? '✓' : ''}
-                                    </span>
-                                    <span style={{ color: selected ? s.text : '#374151' }}>{label}</span>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            <button
-                              onClick={() => setOpenPicker(null)}
-                              className="mt-2 w-full rounded-lg py-1.5 text-xs font-medium"
-                              style={{ background: '#2D3B1F', color: '#C8E86A' }}
-                            >
-                              Confirmer
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* ALLERGÈNES DÉCLARÉS */}
-                    <td className="px-5 py-3">
-                      <div className="relative" data-picker>
-                        <div className="flex flex-wrap items-center gap-1">
-                          {allergens.map((a) => {
-                            const key = a.toLowerCase()
-                            const s = ALLERGEN_COLORS[key] ?? { bg: '#F3F4F6', text: '#374151' }
-                            const emoji = ALLERGEN_EMOJI[key] ?? ''
-                            return (
-                              <button
-                                key={a}
-                                onClick={() => toggleAllergen(dish.id, a)}
-                                className="rounded-full px-2 py-0.5 text-[10px] font-medium capitalize transition-opacity"
-                                style={{ background: s.bg, color: s.text }}
-                                title="Cliquer pour retirer"
-                              >
-                                {emoji} {a.replace(/_/g, ' ')} ×
-                              </button>
-                            )
-                          })}
-                          <button
-                            onClick={() => setOpenPicker(
-                              openPicker?.id === dish.id && openPicker.type === 'allergens'
-                                ? null
-                                : { id: dish.id, type: 'allergens' }
-                            )}
-                            className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold transition-colors"
-                            style={{ background: '#F2EDE4', color: '#9CA3AF' }}
-                            title="Ajouter un allergène"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        {openPicker?.id === dish.id && openPicker.type === 'allergens' && (
-                          <div
-                            className="absolute left-0 top-full z-50 mt-1 rounded-xl bg-white p-3 shadow-lg"
-                            style={{ minWidth: 240, border: '1px solid #E5E0D8' }}
-                          >
-                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#9CA3AF' }}>
-                              14 allergènes réglementaires
-                            </p>
-                            <div className="grid grid-cols-2 gap-1">
-                              {ALL_ALLERGENS.map((a) => {
-                                const selected = allergens.includes(a)
-                                const s = ALLERGEN_COLORS[a] ?? { bg: '#F3F4F6', text: '#374151' }
-                                const emoji = ALLERGEN_EMOJI[a] ?? ''
-                                return (
-                                  <button
-                                    key={a}
-                                    onClick={() => toggleAllergen(dish.id, a)}
-                                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] transition-colors text-left"
-                                    style={{ background: selected ? s.bg : 'transparent' }}
-                                  >
-                                    <span
-                                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]"
-                                      style={{
-                                        background: selected ? s.bg : 'white',
-                                        border: `1px solid ${selected ? s.text : '#D1D5DB'}`,
-                                        color: s.text,
-                                      }}
-                                    >
-                                      {selected ? '✓' : ''}
-                                    </span>
-                                    <span style={{ color: selected ? s.text : '#374151' }}>
-                                      {emoji} <span className="capitalize">{a.replace(/_/g, ' ')}</span>
-                                    </span>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            <button
-                              onClick={() => setOpenPicker(null)}
-                              className="mt-2 w-full rounded-lg py-1.5 text-xs font-medium"
-                              style={{ background: '#2D3B1F', color: '#C8E86A' }}
-                            >
-                              Confirmer
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* STATUT */}
-                    <td className="px-5 py-3 whitespace-nowrap">
-                      {hasAllergens ? (
-                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                          style={{ background: '#D1FAE5', color: '#065F46' }}>
-                          ✓ Exact
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                          style={{ background: '#FEF3C7', color: '#92400E' }}>
-                          ⚠ À vérifier
-                        </span>
-                      )}
-                    </td>
-                  </tr>
+                    <Toggle
+                      checked={!h.closed}
+                      onChange={() =>
+                        setHours(p => ({ ...p, [day.key]: { ...p[day.key], closed: !p[day.key].closed } }))
+                      }
+                    />
+                  </div>
                 )
               })}
-            </tbody>
-          </table>
-        )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right column — accessibility + mobile preview */}
+        <div className="shrink-0 w-72 sticky top-6 space-y-5">
+          {/* Accessibilité & ambiance */}
+          <div className="rounded-xl bg-white p-6" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+            <h2 className="text-sm font-semibold mb-4" style={{ color: '#111827' }}>
+              Accessibilité &amp; ambiance
+            </h2>
+            <div className="space-y-3">
+              {ACCESSIBILITY_OPTIONS.map(opt => (
+                <div key={opt.key} className="flex items-center justify-between">
+                  <span className="text-sm" style={{ color: '#374151' }}>{opt.label}</span>
+                  <Toggle
+                    checked={!!accessibility[opt.key]}
+                    onChange={() =>
+                      setAccessibility(prev => ({ ...prev, [opt.key]: !prev[opt.key] }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Aperçu mobile */}
+          <div
+            className="rounded-xl bg-white p-5"
+            style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
+          >
+            <h2 className="text-sm font-semibold mb-4 text-center" style={{ color: '#111827' }}>
+              Aperçu mobile
+            </h2>
+            <MobilePreview restaurant={{ ...restaurant, name, description, address }} />
+            <p className="mt-4 text-center text-xs" style={{ color: '#9CA3AF' }}>
+              Aperçu en temps réel de votre fiche client
+            </p>
+          </div>
+        </div>
       </div>
     </div>
+  )
+}
+
+function TimeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <input
+      type="time"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className="rounded-lg border px-2 py-1 text-xs outline-none transition-colors"
+      style={{ borderColor: '#E5E0D8', color: '#374151', width: 80 }}
+      onFocus={e => (e.currentTarget.style.borderColor = '#4E6939')}
+      onBlur={e => (e.currentTarget.style.borderColor = '#E5E0D8')}
+    />
   )
 }

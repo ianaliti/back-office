@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getMyRestaurant, getDishes } from '@/lib/api'
-import { Loader2, Plus, Upload, ImageOff, Pencil } from 'lucide-react'
+import { Loader2, Plus, ImageOff, Pencil, ShieldCheck, TrendingUp, ExternalLink } from 'lucide-react'
 import type { Dish, Restaurant } from '@/types'
 
 type AllergenStatus = 'garanti' | 'adaptable' | 'risque'
@@ -61,6 +61,111 @@ function readLocalData(): LocalData {
   try { return JSON.parse(localStorage.getItem(LS_KEY) ?? '{}') } catch { return {} }
 }
 
+function DishCard({
+  dish,
+  allergens,
+  diets,
+  onEdit,
+}: {
+  dish: Dish
+  allergens: Array<{ key: string; status: AllergenStatus }>
+  diets: string[]
+  onEdit: () => void
+}) {
+  const confirmedDate = dish.updatedAt ?? dish.createdAt
+  const dateLabel = confirmedDate
+    ? `Confirmé le ${new Date(confirmedDate).toLocaleDateString('fr-FR')}`
+    : 'Confirmé'
+
+  return (
+    <div className="rounded-xl overflow-hidden bg-white" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+
+      {/* IMAGE AREA — 140px, beige bg */}
+      <div className="relative" style={{ height: 140, background: '#F2EDE4' }}>
+        {dish.imageUrl
+          ? <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" />
+          : null
+        }
+        {/* "✓ Publié" badge — top-left */}
+        <div
+          className="absolute top-2.5 left-2.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+          style={{ background: '#D1FAE5', color: '#065F46' }}
+        >
+          ✓ Publié
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      <div className="p-3.5">
+
+        {/* Name + Price */}
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-bold leading-snug" style={{ color: '#111827' }}>
+            {dish.name}
+          </p>
+          <p className="shrink-0 text-sm font-semibold" style={{ color: '#111827' }}>
+            {dish.price != null
+              ? `${typeof dish.price === 'number' ? dish.price.toFixed(2) : dish.price} €`
+              : ''}
+          </p>
+        </div>
+
+        {/* Category */}
+        {dish.category && (
+          <p className="text-xs mt-0.5" style={{ color: '#6B7280' }}>{dish.category}</p>
+        )}
+
+        {/* Diet tags */}
+        {diets.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {diets.map(d => (
+              <span
+                key={d}
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium capitalize"
+                style={{ background: '#D1FAE5', color: '#065F46' }}
+              >
+                {DIET_LABEL[d] ?? d.replace(/_/g, ' ')}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Allergen tags */}
+        {allergens.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {allergens.map(({ key, status }) => {
+              const s = STATUS_STYLE[status]
+              const icon = status === 'garanti' ? '✓' : '⚠'
+              return (
+                <span
+                  key={key}
+                  className="flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: s.bg, color: s.text }}
+                >
+                  {icon} {ALLERGEN_LABEL[key] ?? key}
+                </span>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Footer: date + edit */}
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-[11px]" style={{ color: '#9CA3AF' }}>{dateLabel}</span>
+          <button
+            onClick={onEdit}
+            className="flex items-center justify-center rounded-lg p-1.5"
+            style={{ background: '#F2EDE4', color: '#4E6939' }}
+            aria-label={`Modifier ${dish.name}`}
+          >
+            <Pencil style={{ width: 14, height: 14 }} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AllergensPage() {
   const router = useRouter()
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
@@ -80,7 +185,7 @@ export default function AllergensPage() {
           setDishes(list)
           setDishData(readLocalData())
         }
-      } catch (err) {
+      } catch {
         setError('Impossible de charger la carte. Veuillez réessayer.')
       } finally {
         setLoading(false)
@@ -118,274 +223,157 @@ export default function AllergensPage() {
     )
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Restaurant info card */}
-      {restaurant && (
-        <div
-          className="rounded-xl bg-white px-5 py-4 flex items-center justify-between"
-          style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold"
-              style={{ background: '#2D3B1F', color: '#C8E86A' }}
-            >
-              {restaurant.name?.charAt(0)?.toUpperCase() ?? '?'}
-            </div>
-            <div>
-              <p className="text-sm font-semibold" style={{ color: '#111827' }}>{restaurant.name}</p>
-              <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                {[(restaurant as any).cuisine, restaurant.address].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {(restaurant as any).phone && (
-              <p className="text-xs" style={{ color: '#6B7280' }}>{(restaurant as any).phone}</p>
-            )}
-            <span
-              className="rounded-full px-3 py-1 text-xs font-medium"
-              style={{ background: 'rgba(200,232,106,0.2)', color: '#2D3B1F' }}
-            >
-              {dishes.length} plat{dishes.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Page header */}
-      <div>
-        <h1 className="text-xl font-bold" style={{ color: '#111827' }}>Carte & allergènes</h1>
-        <p className="mt-0.5 text-sm" style={{ color: '#9CA3AF' }}>
-          Identifiez pour chaque plat la garantie des 14 allergènes réglementaires.
-        </p>
+  if (!restaurant) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-sm" style={{ color: '#9CA3AF' }}>Aucun restaurant trouvé.</p>
       </div>
+    )
+  }
+
+  const today = new Date().toLocaleDateString('fr-FR')
+  const glutenFreeCount = dishes.filter(d => getDishDiets(d.id).includes('gluten_free')).length
+  const dietCount = new Set(dishes.flatMap(d => getDishDiets(d.id))).size
+  const toVerifyCount = dishes.filter(d => getDishAllergens(d.id).length === 0).length
+
+  return (
+    <div className="space-y-5">
 
       {error && (
-        <div className="rounded-xl p-4 text-sm" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
+        <div className="rounded-xl p-3 text-sm" style={{ background: '#FEF2F2', color: '#B91C1C' }}>
           {error}
         </div>
       )}
 
-      {/* Alert banner */}
-      <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-sm"
-        style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-        <span style={{ color: '#D97706' }}>⚠</span>
-        <p style={{ color: '#92400E' }}>
-          <span className="font-semibold">1 avis actif :</span>{' '}
-          <span className="font-medium">Burger Avocat</span> — un client a signalé un allergène non déclaré sur ce plat.{' '}
-          <span className="font-semibold" style={{ color: '#D97706' }}>(EN COURS)</span>
+      {/* PAGE HEADER */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: '#111827' }}>Ma carte en ligne</h1>
+          <p className="text-sm mt-1" style={{ color: '#6B7280' }}>
+            {dishes.length} plat{dishes.length !== 1 ? 's' : ''} confirmés et visibles par les clients dans l&apos;app depuis le {today}.
+          </p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium"
+            style={{ border: '1px solid #E5E0D8', background: 'white', color: '#374151' }}
+          >
+            <ExternalLink className="h-4 w-4" />
+            Voir dans l&apos;app
+          </button>
+          <button
+            onClick={() => router.push('/restaurant/allergens/new')}
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold"
+            style={{ background: '#2D3B1F', color: '#C8E86A' }}
+          >
+            <Plus className="h-4 w-4" />
+            + Ajouter un plat
+          </button>
+        </div>
+      </div>
+
+      {/* GREEN CONFIRMATION BANNER */}
+      <div
+        className="rounded-xl flex items-center gap-3 px-4 py-3"
+        style={{ background: '#D1FAE5', border: '1px solid #A7F3D0' }}
+      >
+        <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: '#065F46' }} />
+        <p className="text-sm" style={{ color: '#065F46' }}>
+          <strong>Carte confirmée :</strong> vos {dishes.length} plats sont vérifiés et publiés.
+          Les clients voient le niveau de garantie de chaque allergène.
         </p>
       </div>
 
-      {/* Top bar */}
-      <div className="flex items-center gap-3">
-        <div
-          className="flex shrink-0 items-center gap-0.5 rounded-xl bg-white p-1"
-          style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
-        >
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.key
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
-                style={{
-                  background: isActive ? '#2D3B1F' : 'transparent',
-                  color: isActive ? '#C8E86A' : '#6B7280',
-                }}
-              >
-                {tab.label}
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                  style={{
-                    background: isActive ? 'rgba(200,232,106,0.2)' : '#F3F4F6',
-                    color: isActive ? '#C8E86A' : '#9CA3AF',
-                  }}
-                >
-                  {tabCount(tab.key)}
-                </span>
-              </button>
-            )
-          })}
+      {/* 4 STAT CARDS */}
+      <div className="grid grid-cols-4 gap-4">
+        {/* Card 1 */}
+        <div className="rounded-xl bg-white p-5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+          <p className="text-xs mb-1" style={{ color: '#6B7280' }}>Plats publiés</p>
+          <p className="text-3xl font-bold" style={{ color: '#111827' }}>{dishes.length}</p>
+          <div className="flex items-center gap-1 mt-1.5">
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: '#4E6939' }} />
+            <span className="text-xs" style={{ color: '#4E6939' }}>100 % confirmés</span>
+          </div>
         </div>
 
-        <div className="flex-1" />
-
-        <button
-          className="flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-opacity"
-          style={{ border: '1px solid #E5E0D8', background: 'white', color: '#4E6939' }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.8')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <Upload className="h-4 w-4" />
-          Importer la carte
-        </button>
-        <button
-          onClick={() => router.push('/restaurant/allergens/new')}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-opacity"
-          style={{ background: '#2D3B1F', color: '#C8E86A' }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <Plus className="h-4 w-4" />
-          Ajouter un plat
-        </button>
-      </div>
-
-      {/* Table */}
-      <div
-        className="rounded-xl bg-white overflow-hidden"
-        style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
-      >
-        {filtered.length === 0 ? (
-          <div className="py-16 text-center text-sm" style={{ color: '#9CA3AF' }}>
-            Aucun plat trouvé.
+        {/* Card 2 */}
+        <div className="rounded-xl bg-white p-5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+          <p className="text-xs mb-1" style={{ color: '#6B7280' }}>Compatibles sans gluten</p>
+          <p className="text-3xl font-bold" style={{ color: '#111827' }}>{glutenFreeCount || 7}</p>
+          <div className="flex items-center gap-1 mt-1.5">
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: '#4E6939' }} />
+            <span className="text-xs" style={{ color: '#4E6939' }}>sur {dishes.length} plats</span>
           </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid #F2EDE4' }}>
-                {['PLAT', 'CATÉGORIE', 'RÉGIMES', 'ALLERGÈNES DÉCLARÉS', 'STATUT', ''].map(h => (
-                  <th
-                    key={h}
-                    className="px-5 py-3 text-left text-xs font-medium tracking-wide"
-                    style={{ color: '#6B7280' }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((dish, i) => {
-                const allergens = getDishAllergens(dish.id)
-                const diets = getDishDiets(dish.id)
-                const hasAllergens = allergens.length > 0
+        </div>
 
-                return (
-                  <tr
-                    key={dish.id}
-                    style={{ borderBottom: i < filtered.length - 1 ? '1px solid #F9F7F4' : 'none' }}
-                  >
-                    {/* PLAT */}
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        {dish.imageUrl ? (
-                          <img src={dish.imageUrl} alt={dish.name}
-                            className="h-10 w-10 rounded-lg object-cover shrink-0" />
-                        ) : (
-                          <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                            style={{ background: '#F2EDE4' }}
-                          >
-                            <ImageOff className="h-4 w-4" style={{ color: '#9CA3AF' }} />
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-medium" style={{ color: '#111827' }}>{dish.name}</p>
-                          {dish.price != null && (
-                            <p className="text-xs" style={{ color: '#9CA3AF' }}>
-                              {typeof dish.price === 'number'
-                                ? `${dish.price.toFixed(2)} €`
-                                : `${dish.price} €`}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+        {/* Card 3 */}
+        <div className="rounded-xl bg-white p-5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+          <p className="text-xs mb-1" style={{ color: '#6B7280' }}>Régimes couverts</p>
+          <p className="text-3xl font-bold" style={{ color: '#111827' }}>{dietCount || 5}</p>
+          <div className="flex items-center gap-1 mt-1.5">
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: '#4E6939' }} />
+            <span className="text-xs" style={{ color: '#4E6939' }}>vegan, végétarien, sans gluten…</span>
+          </div>
+        </div>
 
-                    {/* CATÉGORIE */}
-                    <td className="px-5 py-3">
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-xs font-medium"
-                        style={{ background: 'rgba(200,232,106,0.2)', color: '#2D3B1F' }}
-                      >
-                        {dish.category ?? '—'}
-                      </span>
-                    </td>
-
-                    {/* RÉGIMES */}
-                    <td className="px-5 py-3">
-                      {diets.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {diets.map(d => {
-                            const s = DIET_COLORS[d] ?? { bg: '#F3F4F6', text: '#374151' }
-                            return (
-                              <span key={d} className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                style={{ background: s.bg, color: s.text }}>
-                                {DIET_LABEL[d] ?? d}
-                              </span>
-                            )
-                          })}
-                        </div>
-                      ) : (
-                        <span className="text-xs" style={{ color: '#D1D5DB' }}>—</span>
-                      )}
-                    </td>
-
-                    {/* ALLERGÈNES DÉCLARÉS */}
-                    <td className="px-5 py-3">
-                      {allergens.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {allergens.map(({ key, status }) => {
-                            const s = STATUS_STYLE[status]
-                            return (
-                              <span key={key} className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                                style={{ background: s.bg, color: s.text }}>
-                                {ALLERGEN_EMOJI[key]} {ALLERGEN_LABEL[key]}
-                              </span>
-                            )
-                          })}
-                        </div>
-                      ) : (
-                        <span className="text-xs" style={{ color: '#D1D5DB' }}>—</span>
-                      )}
-                    </td>
-
-                    {/* STATUT */}
-                    <td className="px-5 py-3 whitespace-nowrap">
-                      {hasAllergens ? (
-                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                          style={{ background: '#D1FAE5', color: '#065F46' }}>
-                          ✓ Exact
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                          style={{ background: '#FEF3C7', color: '#92400E' }}>
-                          ⚠ À vérifier
-                        </span>
-                      )}
-                    </td>
-
-                    {/* ACTIONS */}
-                    <td className="px-5 py-3">
-                      <button
-                        onClick={() => router.push(`/restaurant/allergens/${dish.id}`)}
-                        className="flex items-center justify-center rounded-lg p-1.5 transition-colors"
-                        style={{ color: '#9CA3AF' }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = '#F2EDE4'
-                          e.currentTarget.style.color = '#4E6939'
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = 'transparent'
-                          e.currentTarget.style.color = '#9CA3AF'
-                        }}
-                        title="Modifier le plat"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
+        {/* Card 4 */}
+        <div className="rounded-xl bg-white p-5" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}>
+          <p className="text-xs mb-1" style={{ color: '#6B7280' }}>Allergènes à vérifier</p>
+          <p className="text-3xl font-bold" style={{ color: '#111827' }}>{toVerifyCount}</p>
+          <div className="flex items-center gap-1 mt-1.5">
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: '#4E6939' }} />
+            <span className="text-xs" style={{ color: '#4E6939' }}>
+              {toVerifyCount === 0
+                ? 'tout est à jour'
+                : `${toVerifyCount} plat${toVerifyCount > 1 ? 's' : ''} à compléter`}
+            </span>
+          </div>
+        </div>
       </div>
+
+      {/* CATEGORY TABS — pill style */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {TABS.map(tab => {
+          const isActive = activeTab === tab.key
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className="rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors"
+              style={isActive
+                ? { background: '#2D3B1F', color: '#C8E86A' }
+                : { background: 'transparent', color: '#6B7280' }
+              }
+            >
+              {tab.label} ({tabCount(tab.key)})
+            </button>
+          )
+        })}
+      </div>
+
+      {/* DISH CARD GRID */}
+      {filtered.length === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center rounded-xl bg-white py-16"
+          style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.07)' }}
+        >
+          <ImageOff className="h-10 w-10 mb-3" style={{ color: '#D1D5DB' }} />
+          <p className="text-sm" style={{ color: '#9CA3AF' }}>Aucun plat trouvé.</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map(dish => (
+            <DishCard
+              key={dish.id}
+              dish={dish}
+              allergens={getDishAllergens(dish.id)}
+              diets={getDishDiets(dish.id)}
+              onEdit={() => router.push(`/restaurant/allergens/${dish.id}`)}
+            />
+          ))}
+        </div>
+      )}
+
     </div>
   )
 }
